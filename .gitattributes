@@ -1,0 +1,17 @@
+﻿# Normaliza finais de linha automaticamente
+* text=auto
+
+# Código Python: manter LF (Unix) no repositório
+*.py text eol=lf
+
+# Markdown e configs também em LF
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# CSV e arquivos exportados (se algum for versionado futuramente)
+*.csv text eol=lf
