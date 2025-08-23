@@ -24,22 +24,19 @@ Assim conseguimos usar um banco de dados real sem instalar nada extra, ideal par
 ---
 
 ## 📂 Estrutura do Projeto
-```
 AgendaPsico_CLI_SQLite/
 ├─ .gitignore
 ├─ README.md
 ├─ requirements.txt
 └─ src/
-   ├─ app.py      # menu principal (interface de texto)
-   ├─ db.py       # conexão e criação de tabelas
-   └─ auth.py     # funções simples de segurança (hash de senha)
-```
+├─ app.py # menu principal (interface de texto)
+├─ db.py # conexão e criação de tabelas
+└─ auth.py # funções simples de segurança (hash de senha)
 
----
 
 ## ▶️ Como Executar
 
-```bash
+
 # 1) (opcional) criar e ativar ambiente virtual
 python -m venv venv
 # Windows (PowerShell)
@@ -52,21 +49,19 @@ pip install -r requirements.txt
 
 # 3) rodar aplicação
 python src/app.py
-```
+📌 Fluxo de Uso
+Criar conta (psicólogo) com usuário e senha
 
----
+Login
 
-## 📌 Fluxo de Uso
-1. **Criar conta** (psicólogo) com usuário e senha  
-2. **Login**  
-3. **Cadastrar pacientes** e valor da sessão  
-4. **Registrar sessões** (informando paciente e data)  
-5. **Gerar relatório mensal** (ex.: `2025-08`) com total do mês e detalhes por paciente  
+Cadastrar pacientes e valor da sessão
 
----
+Registrar sessões (informando paciente e data)
 
-## 💻 Exemplo no Terminal
-```txt
+Gerar relatório mensal (ex.: 2025-08) com total do mês e detalhes por paciente
+
+💻 Exemplo no Terminal
+
 ==== AGENDA PSI ====
 1. Criar conta
 2. Login
@@ -81,24 +76,32 @@ Login realizado!
 2. Registrar sessão
 3. Relatório mensal
 4. Sair
-```
 
+🔒 Observações
+Senhas são guardadas com hash (hashlib), não em texto puro.
+
+Projeto didático: foco em lógica, uso de funções, banco de dados e segurança básica.
+
+Próximos passos possíveis:
+
+versão web com Flask
+
+exportar relatórios para CSV/PDF
+
+integração com Google Calendar ou APIs financeiras
 ---
 
-## 🔒 Observações
-- Senhas são guardadas com **hash** (`hashlib`), não em texto puro.
-- Projeto **didático**: foco em lógica, uso de funções, banco de dados e segurança básica.
-- Próximos passos possíveis:
-  - versão web com Flask
-  - exportar relatórios para CSV/PDF
-  - integração com Google Calendar ou APIs financeiras
+## 🗺️ Roadmap
+- [ ] Exportar relatório mensal para **CSV**
+- [ ] Validações de entrada (datas/valores) mais robustas
+- [ ] Integração com **Google Calendar** (sincronizar sessões)
+- [ ] Versão **web** com Flask + templates
+- [ ] Relatórios financeiros: gráficos simples (mês a mês)
 
----
 
-## 📜 Licença
-Este projeto está sob a licença [MIT](https://opensource.org/licenses/MIT).  
-Sinta-se livre para usar, estudar e modificar.  
+📜 Licença
+Este projeto está sob a licença MIT.
+Sinta-se livre para usar, estudar e modificar.
 
----
-
-✍️ **Autor:** Mateus Junior  
+✍️ Autor: Mateus de Paula Jr
+**Status:** Em desenvolvimento 🚧
