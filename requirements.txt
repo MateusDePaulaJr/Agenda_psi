@@ -1,0 +1,1 @@
+# Usa apenas a biblioteca padrão do Python (sqlite3, hashlib). Sem dependências externas.

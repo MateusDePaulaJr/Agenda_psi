@@ -1,0 +1,15 @@
+# Python cache and env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+# IDE/editor folders
+.vscode/
+.idea/
+
+# SQLite database
+data.db
