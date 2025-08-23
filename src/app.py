@@ -3,9 +3,9 @@ import sqlite3
 from pathlib import Path
 import hashlib
 import re
-from datetime import date
+from datetime import date, datetime
 
-# Exportação para CSV
+# Exportação para CSV (salva em ./exports/relatorio_YYYY-MM.csv)
 from export_csv import exportar_relatorio
 
 DB_PATH = (Path(__file__).resolve().parent.parent / "agenda.db")
@@ -15,12 +15,6 @@ DB_PATH = (Path(__file__).resolve().parent.parent / "agenda.db")
 # -----------------------
 def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-def is_yyyy_mm(s: str) -> bool:
-    return bool(re.fullmatch(r"\d{4}-\d{2}", s))
-
-def is_yyyy_mm_dd(s: str) -> bool:
-    return bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", s))
 
 def input_nonempty(msg: str) -> str:
     while True:
@@ -40,12 +34,50 @@ def input_float(msg: str) -> float:
         except ValueError:
             print("Digite um número válido (ex.: 180 ou 180.50).")
 
-def input_date(msg: str) -> str:
+# -----------------------
+# Datas pt-BR (entrada) ↔ ISO (armazenamento)
+# -----------------------
+def parse_data_ptbr_to_iso(dia_mes_ano: str) -> str:
+    """Recebe 'DD/MM/AAAA' e devolve 'YYYY-MM-DD' (valida datas reais)."""
+    try:
+        dt = datetime.strptime(dia_mes_ano, "%d/%m/%Y")
+        return dt.strftime("%Y-%m-%d")
+    except ValueError:
+        raise ValueError("Data inválida. Use o formato DD/MM/AAAA (ex.: 23/08/2025).")
+
+def parse_mes_ptbr_to_iso(mes_ano: str) -> str:
+    """Recebe 'MM/AAAA' e devolve 'YYYY-MM' (valida mês real)."""
+    try:
+        dt = datetime.strptime(mes_ano, "%m/%Y")
+        return dt.strftime("%Y-%m")
+    except ValueError:
+        raise ValueError("Mês inválido. Use o formato MM/AAAA (ex.: 08/2025).")
+
+def format_iso_to_ptbr(iso_yyyy_mm_dd: str) -> str:
+    """Recebe 'YYYY-MM-DD' e devolve 'DD/MM/AAAA' para exibir."""
+    try:
+        dt = datetime.strptime(iso_yyyy_mm_dd, "%Y-%m-%d")
+        return dt.strftime("%d/%m/%Y")
+    except ValueError:
+        return iso_yyyy_mm_dd  # fallback
+
+def input_data_ptbr(msg: str) -> str:
+    """Lê uma data DD/MM/AAAA do usuário e retorna no formato ISO YYYY-MM-DD."""
     while True:
         v = input(msg).strip()
-        if is_yyyy_mm_dd(v):
-            return v
-        print("Data inválida. Use o formato YYYY-MM-DD (ex.: 2025-08-23).")
+        try:
+            return parse_data_ptbr_to_iso(v)
+        except ValueError as e:
+            print(e)
+
+def input_mes_ptbr(msg: str) -> str:
+    """Lê um mês MM/AAAA do usuário e retorna no formato ISO YYYY-MM."""
+    while True:
+        v = input(msg).strip()
+        try:
+            return parse_mes_ptbr_to_iso(v)
+        except ValueError as e:
+            print(e)
 
 # -----------------------
 # Banco de Dados (SQLite)
@@ -186,14 +218,16 @@ def registrar_sessao(psicologo_id: int):
         except ValueError:
             print("Digite um número válido.")
 
-    data_ = input_date("Data (YYYY-MM-DD): ")
+    data_iso = input_data_ptbr("Data (DD/MM/AAAA): ")
     valor = input_float("Valor (R$): ")
+    if valor == 0:
+        print("Atenção: valor zero. Se for gratuito, confirme; do contrário, informe o valor correto.")
 
     con = get_con()
     cur = con.cursor()
     cur.execute(
         "INSERT INTO sessoes (psicologo_id, paciente_id, data, valor) VALUES (?, ?, ?, ?)",
-        (psicologo_id, paciente_id, data_, valor)
+        (psicologo_id, paciente_id, data_iso, valor)
     )
     con.commit()
     con.close()
@@ -204,11 +238,7 @@ def registrar_sessao(psicologo_id: int):
 # -----------------------
 def relatorio_mensal(psicologo_id: int):
     print("\n=== Relatório mensal ===")
-    while True:
-        mes = input("Informe o mês (YYYY-MM): ").strip()
-        if is_yyyy_mm(mes):
-            break
-        print("Formato inválido. Ex.: 2025-08")
+    mes_iso = input_mes_ptbr("Informe o mês (MM/AAAA): ").strip()  # → YYYY-MM
 
     con = get_con()
     cur = con.cursor()
@@ -219,7 +249,7 @@ def relatorio_mensal(psicologo_id: int):
         WHERE s.psicologo_id = ?
           AND substr(s.data,1,7) = ?
         ORDER BY s.data
-    """, (psicologo_id, mes))
+    """, (psicologo_id, mes_iso))
     rows = cur.fetchall()
 
     cur.execute("""
@@ -227,16 +257,16 @@ def relatorio_mensal(psicologo_id: int):
         FROM sessoes
         WHERE psicologo_id = ?
           AND substr(data,1,7) = ?
-    """, (psicologo_id, mes))
+    """, (psicologo_id, mes_iso))
     total = cur.fetchone()[0] or 0.0
     con.close()
 
-    print(f"\n--- Caixa de {mes} ---")
+    print(f"\n--- Caixa de {mes_iso[5:]}/{mes_iso[:4]} ---")  # exibe como MM/AAAA
     if not rows:
         print("Nenhuma sessão no período.")
     else:
-        for nome, data_, valor in rows:
-            print(f"{data_}  |  {nome:<20}  R$ {valor:7.2f}")
+        for nome, data_iso, valor in rows:
+            print(f"{format_iso_to_ptbr(data_iso)}  |  {nome:<20}  R$ {valor:7.2f}")
     print(f"\nTOTAL: R$ {total:.2f}")
 
 # -----------------------
@@ -259,11 +289,8 @@ def menu(psicologo_id: int, usuario: str):
         elif opcao == "3":
             relatorio_mensal(psicologo_id)
         elif opcao == "4":
-            mes = input("Informe o mês (YYYY-MM): ").strip()
-            if not is_yyyy_mm(mes):
-                print("Formato inválido. Ex.: 2025-08")
-                continue
-            exportar_relatorio(mes, psicologo_id)
+            mes_iso = input_mes_ptbr("Informe o mês (MM/AAAA): ")
+            exportar_relatorio(mes_iso, psicologo_id)
         elif opcao == "5":
             print("Saindo...")
             break
