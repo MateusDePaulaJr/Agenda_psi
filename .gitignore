@@ -1,15 +1,36 @@
-# Python cache and env
+﻿# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv/
-venv/
-.env
+*.py[cod]
+*.class
 
-# IDE/editor folders
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+
+# Test / coverage
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# IDEs / editors
 .vscode/
 .idea/
+*.swp
 
-# SQLite database
-data.db
+# OS files
+.DS_Store
+Thumbs.db
