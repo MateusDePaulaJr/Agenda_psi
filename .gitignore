@@ -34,3 +34,14 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Bancos de dados locais
+*.db
+
+# Relatórios gerados
+exports/
+*.csv
+
+# Relatórios gerados
+exports/
+*.csv
