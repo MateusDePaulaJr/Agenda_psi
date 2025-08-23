@@ -24,50 +24,98 @@ Assim conseguimos usar um banco de dados real sem instalar nada extra, ideal par
 ---
 
 ## 📂 Estrutura do Projeto
-AgendaPsico_CLI_SQLite/
+```
+Agenda_psi/
 ├─ .gitignore
+├─ LICENSE
 ├─ README.md
 ├─ requirements.txt
+├─ agenda.db        # banco de dados (criado em runtime)
 └─ src/
-├─ app.py # menu principal (interface de texto)
-├─ db.py # conexão e criação de tabelas
-└─ auth.py # funções simples de segurança (hash de senha)
+   ├─ app.py        # menu principal (interface de texto)
+   ├─ db.py         # conexão e criação de tabelas
+   ├─ auth.py       # funções de segurança (hash de senha)
+   └─ demo_seed.py  # script para popular dados de exemplo
+```
 
+---
 
 ## ▶️ Como Executar
 
-
-# 1) (opcional) criar e ativar ambiente virtual
+### 1) (opcional) criar e ativar ambiente virtual
+```bash
 python -m venv venv
-# Windows (PowerShell)
+```
+
+**Windows (PowerShell):**
+```bash
 venv\Scripts\Activate.ps1
-# macOS/Linux
+```
+
+**macOS/Linux:**
+```bash
 source venv/bin/activate
+```
 
-# 2) instalar dependências (se houver)
+### 2) instalar dependências (se houver)
+```bash
 pip install -r requirements.txt
+```
 
-# 3) rodar aplicação
+*(atualmente não há dependências externas)*
+
+### 3) rodar aplicação
+```bash
 python src/app.py
-📌 Fluxo de Uso
-Criar conta (psicólogo) com usuário e senha
+```
 
-Login
+---
 
-Cadastrar pacientes e valor da sessão
+## 🧪 Demo rápida (com dados de exemplo)
 
-Registrar sessões (informando paciente e data)
+Para popular o banco com um usuário e alguns registros de pacientes/sessões:
 
-Gerar relatório mensal (ex.: 2025-08) com total do mês e detalhes por paciente
+```bash
+# Windows (PowerShell)
+py src/demo_seed.py
+```
 
-💻 Exemplo no Terminal
+Saída esperada:
+```
+OK! Banco populado em: ...\agenda.db
+Login de demonstração → usuário: mateus | senha: 1234
+```
 
+Agora rode a aplicação:
+```bash
+py src/app.py
+```
+
+- **Login demo:** usuário `mateus`, senha `1234`  
+- No menu, escolha **Relatório mensal** e informe o mês atual (ex.: `2025-08`).
+
+> Para **resetar o banco**, feche o app e apague o arquivo `agenda.db` na raiz do projeto.  
+> Depois, se quiser, rode o `demo_seed.py` novamente.
+
+---
+
+## 📌 Fluxo de Uso
+1. **Criar conta** (psicólogo) com usuário e senha  
+2. **Login**  
+3. **Cadastrar pacientes** e valor da sessão  
+4. **Registrar sessões** (informando paciente e data)  
+5. **Gerar relatório mensal** (ex.: `2025-08`) com total do mês e detalhes por paciente  
+
+---
+
+## 💻 Exemplo no Terminal
+```txt
 ==== AGENDA PSI ====
 1. Criar conta
 2. Login
 3. Sair
 Escolha: 2
-Usuário: joao
+Usuário: mateus
 Senha: ******
 Login realizado!
 
@@ -76,19 +124,8 @@ Login realizado!
 2. Registrar sessão
 3. Relatório mensal
 4. Sair
+```
 
-🔒 Observações
-Senhas são guardadas com hash (hashlib), não em texto puro.
-
-Projeto didático: foco em lógica, uso de funções, banco de dados e segurança básica.
-
-Próximos passos possíveis:
-
-versão web com Flask
-
-exportar relatórios para CSV/PDF
-
-integração com Google Calendar ou APIs financeiras
 ---
 
 ## 🗺️ Roadmap
@@ -98,10 +135,22 @@ integração com Google Calendar ou APIs financeiras
 - [ ] Versão **web** com Flask + templates
 - [ ] Relatórios financeiros: gráficos simples (mês a mês)
 
+---
 
-📜 Licença
-Este projeto está sob a licença MIT.
-Sinta-se livre para usar, estudar e modificar.
+## 🔒 Observações
+- Senhas são guardadas com **hash** (`hashlib`), não em texto puro.
+- Projeto **didático**: foco em lógica, uso de funções, banco de dados e segurança básica.
+- Próximos passos possíveis:
+  - versão web com Flask
+  - exportar relatórios para CSV/PDF
+  - integração com Google Calendar ou APIs financeiras
 
-✍️ Autor: Mateus de Paula Jr
-**Status:** Em desenvolvimento 🚧
+---
+
+## 📜 Licença
+Este projeto está sob a licença [MIT](https://opensource.org/licenses/MIT).  
+Sinta-se livre para usar, estudar e modificar.  
+
+---
+
+✍️ **Autor:** Mateus de Paula Jr  
