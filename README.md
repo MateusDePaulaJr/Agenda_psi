@@ -1,156 +1,94 @@
-# Agenda para Psicólogos (CLI com SQLite) ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+# Agenda para Psicólogos (CLI + Web com Flask)
 
-Aplicação de linha de comando (CLI) em **Python** que permite psicólogos(as) organizarem seus atendimentos e gerar um relatório financeiro mensal.  
-
-Este é um **projeto didático** de primeiro período da faculdade de Análise e Desenvolvimento de Sistemas.  
-Todos os códigos foram criados com auxílio de IA e **revisados linha a linha** por mim.  
-
----
-
-## ✨ Funcionalidades
-- Cadastro e login de psicólogos (com senha hash)
-- Cadastro de pacientes por psicólogo (com **valor da sessão**)
+Projeto didático (nível iniciante) em **Python** que permite:
+- Cadastro e login de psicólogos
+- Cadastro de pacientes (por psicólogo) com **valor da sessão**
 - Registro de sessões realizadas
-- **Relatório de caixa mensal** por psicólogo:
-  - total do mês  
-  - detalhamento por paciente  
+- **Relatório de caixa mensal** por psicólogo (total do mês + detalhamento por paciente)
+- Interface **Web** com Flask para interação mais amigável
 
----
+## Por que SQLite?
+Usamos **SQLite** (já vem com o Python via `sqlite3`) para ter um banco de dados de verdade sem precisar instalar nada extra.
 
-## 🛠️ Por que SQLite?
-O **SQLite** já vem embutido no Python (`sqlite3`).  
-Assim conseguimos usar um banco de dados real sem instalar nada extra, ideal para projetos de aprendizado.
-
----
-
-## 📂 Estrutura do Projeto
+## Estrutura
 ```
 Agenda_psi/
 ├─ .gitignore
-├─ LICENSE
 ├─ README.md
 ├─ requirements.txt
-├─ agenda.db        # banco de dados (criado em runtime)
 └─ src/
-   ├─ app.py        # menu principal (interface de texto)
+   ├─ app.py        # versão CLI (menu de texto)
+   ├─ web_app.py    # versão Web (Flask)
    ├─ db.py         # conexão e criação de tabelas
-   ├─ auth.py       # funções de segurança (hash de senha)
-   └─ demo_seed.py  # script para popular dados de exemplo
+   ├─ auth.py       # funções simples de segurança (hash de senha)
+   └─ export_csv.py # exportação de relatórios CSV
 ```
 
----
+## Como executar (CLI)
 
-## ▶️ Como Executar
-
-### 1) (opcional) criar e ativar ambiente virtual
 ```bash
+# 1) (opcional) criar e ativar venv
 python -m venv venv
-```
-
-**Windows (PowerShell):**
-```bash
-venv\Scripts\Activate.ps1
-```
-
-**macOS/Linux:**
-```bash
-source venv/bin/activate
-```
-
-### 2) instalar dependências (se houver)
-```bash
-pip install -r requirements.txt
-```
-
-*(atualmente não há dependências externas)*
-
-### 3) rodar aplicação
-```bash
-python src/app.py
-```
-
----
-
-## 🧪 Demo rápida (com dados de exemplo)
-
-Para popular o banco com um usuário e alguns registros de pacientes/sessões:
-
-```bash
 # Windows (PowerShell)
-py src/demo_seed.py
-```
+venv\Scripts\Activate.ps1
+# macOS/Linux
+source venv/bin/activate
 
-Saída esperada:
-```
-OK! Banco populado em: ...\agenda.db
-Login de demonstração → usuário: mateus | senha: 1234
-```
+# 2) instalar dependências
+py -m pip install -r requirements.txt
 
-Agora rode a aplicação:
-```bash
+# 3) rodar CLI
 py src/app.py
 ```
 
-- **Login demo:** usuário `mateus`, senha `1234`  
-- No menu, escolha **Relatório mensal** e informe o mês atual (ex.: `2025-08`).
-
-> Para **resetar o banco**, feche o app e apague o arquivo `agenda.db` na raiz do projeto.  
-> Depois, se quiser, rode o `demo_seed.py` novamente.
-
----
-
-## 📌 Fluxo de Uso
-1. **Criar conta** (psicólogo) com usuário e senha  
-2. **Login**  
-3. **Cadastrar pacientes** e valor da sessão  
-4. **Registrar sessões** (informando paciente e data)  
-5. **Gerar relatório mensal** (ex.: `2025-08`) com total do mês e detalhes por paciente  
+## Fluxo básico (CLI)
+1. **Criar conta** (psicólogo) com usuário e senha
+2. **Login**
+3. **Cadastrar pacientes** e valor da sessão
+4. **Registrar sessões**
+5. **Relatório mensal** (ex.: 2025-08)
 
 ---
 
-## 💻 Exemplo no Terminal
-```txt
-==== AGENDA PSI ====
-1. Criar conta
-2. Login
-3. Sair
-Escolha: 2
-Usuário: mateus
-Senha: ******
-Login realizado!
+## Modo Web (Flask)
 
---- Menu Principal ---
-1. Cadastrar paciente
-2. Registrar sessão
-3. Relatório mensal
-4. Sair
-```
+Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando **Flask + Bootstrap** 🎉
 
----
+### Como executar
 
-## 🗺️ Roadmap
-- [ ] Exportar relatório mensal para **CSV**
-- [ ] Validações de entrada (datas/valores) mais robustas
-- [ ] Integração com **Google Calendar** (sincronizar sessões)
-- [ ] Versão **web** com Flask + templates
-- [ ] Relatórios financeiros: gráficos simples (mês a mês)
+1. Garanta que as dependências estejam instaladas:
+   ```bash
+   py -m pip install -r requirements.txt
+   ```
 
----
+2. Rode o servidor Flask:
+   ```bash
+   py src/web_app.py
+   ```
 
-## 🔒 Observações
-- Senhas são guardadas com **hash** (`hashlib`), não em texto puro.
-- Projeto **didático**: foco em lógica, uso de funções, banco de dados e segurança básica.
-- Próximos passos possíveis:
-  - versão web com Flask
-  - exportar relatórios para CSV/PDF
-  - integração com Google Calendar ou APIs financeiras
+3. Acesse no navegador:
+   - [http://127.0.0.1:5000/](http://127.0.0.1:5000/) → Tela de Login
+   - [http://127.0.0.1:5000/dashboard](http://127.0.0.1:5000/dashboard) → Dashboard
 
----
+### Funcionalidades Web
 
-## 📜 Licença
-Este projeto está sob a licença [MIT](https://opensource.org/licenses/MIT).  
-Sinta-se livre para usar, estudar e modificar.  
+- Login com o mesmo banco `agenda.db` (usuários criados na CLI também funcionam)
+- **Pacientes**:
+  - Cadastrar
+  - Editar nome e valor
+  - Listar com valores
+- **Agendar Sessões**:
+  - Seleção de paciente
+  - Escolha de data com calendário
+  - Valor sugerido automaticamente pelo paciente (editável)
+- **Agenda do Dia**:
+  - Lista de sessões do dia
+  - Total diário
+- **Dashboard** com botões rápidos para cada funcionalidade
 
 ---
 
-✍️ **Autor:** Mateus de Paula Jr  
+## Observações
+- Senhas são guardadas com *hash* (não em texto puro), usando `hashlib`.
+- Esse projeto é didático: foco em aprender lógica, arquivos, funções, banco de dados e um pouco de segurança.
+- Próximos passos possíveis: relatórios gráficos, integração com Google Calendar, deploy em nuvem (Heroku/Render).
