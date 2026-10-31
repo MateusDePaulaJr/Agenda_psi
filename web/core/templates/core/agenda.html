@@ -14,7 +14,7 @@
   {% for s in dia.sessoes %}
     <li class="list-group-item slot-ocupado {% if destaque == s.pk|stringformat:'s' %}border border-primary border-3{% endif %}">
       <a class="d-flex align-items-center gap-2 text-decoration-none text-body py-1" href="{% url 'sessao_detalhe' s.pk %}">
-        <strong style="width:52px">{{ s.inicio|time:"H\hi" }}</strong>
+        <strong style="min-width:60px;white-space:nowrap">{{ s.inicio|time:"H\hi" }}</strong>
         <span class="flex-fill">👤 {{ s.paciente.nome }}</span>
         {% if s.pagamento.status == 'pago' %}<span class="badge text-bg-success">✔ Pago</span>
         {% else %}<span class="badge text-bg-warning">⏱ A receber</span>{% endif %}
