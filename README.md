@@ -152,3 +152,44 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - `render.yaml` cria o serviço web (Gunicorn + WhiteNoise) e o banco PostgreSQL gratuito.
 - Variáveis secretas definidas no painel: `PSI_USUARIO`, `PSI_SENHA`, `PSI_NOME` (conta da psicóloga, criada no build por `python manage.py criar_usuaria`). `DJANGO_SECRET_KEY` é gerada pelo Render.
 - **Monitoramento:** `GET /saude/` responde `{"status":"ok","banco":"ok","tempo_ms":...}` sem login e sem dados pessoais. É usado pelo health check do Render e por um monitor externo de disponibilidade (UptimeRobot, a cada 5 min). Erros de requisição vão para os logs do Render.
+
+## Segurança e backup
+
+- **Bloqueio de login:** após 5 tentativas erradas seguidas para o mesmo usuário, o login (inclusive o do `/admin/`) fica bloqueado por 15 minutos, mesmo com a senha certa. O contador fica no banco (tabela `core_tentativalogin`) e zera no primeiro login bem-sucedido. Para liberar antes, apague o registro do usuário em *Admin → Tentativas de login*.
+- **Sessões sobrepostas no PostgreSQL:** além da verificação na aplicação, a migração `0005` cria no PostgreSQL a extensão `btree_gist` e uma restrição `EXCLUDE` que impede duas sessões ativas da mesma psicóloga no mesmo horário (no SQLite ela não faz nada).
+
+### Backup pela aplicação (JSON)
+
+```bash
+cd web
+python manage.py exportar_backup                       # gera backup-psiagenda-AAAAMMDD-HHMMSS.json.gz
+python manage.py exportar_backup backups/psiagenda.json.gz
+```
+
+O arquivo contém pacientes, sessões, pagamentos, prontuários e as contas (com hash de senha): **guarde em local seguro e nunca versione no Git**. Para restaurar em um banco vazio já migrado:
+
+```bash
+python manage.py migrate
+python manage.py loaddata backup-psiagenda-AAAAMMDD-HHMMSS.json.gz
+```
+
+### Backup do PostgreSQL do Render (pg_dump)
+
+1. No painel do Render, abra o banco `psiagenda-db` → *Connect* → copie a **External Database URL**.
+2. No seu computador (com o cliente PostgreSQL na mesma versão do servidor ou mais nova), guarde a URL numa variável de ambiente, sem colá-la em arquivos do projeto:
+
+```bash
+# Linux/macOS (o espaço inicial evita salvar no histórico em muitos shells)
+ export PSI_DB_URL='postgresql://...'
+pg_dump "$PSI_DB_URL" --format=custom --no-owner --file="psiagenda-$(date +%Y%m%d).dump"
+```
+
+```powershell
+# Windows (PowerShell)
+$env:PSI_DB_URL = 'postgresql://...'
+pg_dump $env:PSI_DB_URL --format=custom --no-owner --file="psiagenda-$(Get-Date -Format yyyyMMdd).dump"
+```
+
+3. Para restaurar em um banco **vazio** (por exemplo, um novo banco do Render): `pg_restore --no-owner --dbname="$PSI_DB_URL" psiagenda-AAAAMMDD.dump`. Para sobrescrever um banco existente, acrescente `--clean --if-exists`.
+
+O plano gratuito do Render não tem backups automáticos e o banco gratuito expira após um período (confira no painel): faça o `pg_dump` com frequência.
