@@ -2,11 +2,13 @@
 {% block title %}Prontuário – PsiAgenda{% endblock %}
 {% block content %}
 <a href="{% url 'sessao_detalhe' sessao.pk %}">← Voltar para a sessão</a>
-<h1 class="h4 my-3">Prontuário</h1>
+<h1 class="pa-page-title my-3">Prontuário</h1>
 <p>{{ sessao.paciente.nome }} · {{ sessao.inicio|date:"d/m/Y H:i" }}</p>
+<div class="pa-card mt-3"><div class="pa-card-body p-4">
 <form method="post" novalidate>
   {% csrf_token %}
   {% include "core/form_campos.html" %}
   <button class="btn btn-primary w-100">Salvar prontuário</button>
 </form>
+</div></div>
 {% endblock %}

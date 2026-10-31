@@ -1,30 +1,37 @@
 {% extends "core/base.html" %}
+{% load psiagenda %}
 {% block title %}Agenda – PsiAgenda{% endblock %}
 {% block content %}
-<h1 class="h4">Agenda da semana</h1>
-<div class="d-flex align-items-center gap-2 my-3">
-  <a class="btn btn-outline-secondary" href="?semana={{ anterior|date:'Y-m-d' }}" aria-label="Semana anterior">‹</a>
-  <span class="flex-fill text-center fw-semibold">{{ segunda|date:"d/m" }} a {{ domingo|date:"d/m/Y" }}</span>
-  <a class="btn btn-outline-secondary" href="?semana={{ proxima|date:'Y-m-d' }}" aria-label="Próxima semana">›</a>
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+  <div><h1 class="pa-page-title">Agenda da semana</h1><p class="pa-subtitle">Toque em uma sessão para ver detalhes, pagamento e prontuário.</p></div>
+  <a class="btn btn-primary pa-fab" href="{% url 'sessao_nova' %}">＋ Nova sessão</a>
 </div>
+<div class="pa-week mb-3">
+  <a class="pa-icon-btn" href="?semana={{ anterior|date:'Y-m-d' }}" aria-label="Semana anterior">‹</a>
+  <span class="flex-fill text-center fw-semibold">{{ segunda|date:"d/m" }} a {{ domingo|date:"d/m/Y" }}</span>
+  <a class="pa-icon-btn" href="?semana={{ proxima|date:'Y-m-d' }}" aria-label="Próxima semana">›</a>
+</div>
+<div class="row g-3">
 {% for dia in dias %}
-<section class="card mb-2" aria-label="{{ dia.data|date:'l, d/m' }}">
-  <h2 class="card-header h6 m-0">{{ dia.data|date:"l, d/m"|capfirst }}</h2>
-  <ul class="list-group list-group-flush">
+<div class="col-12 col-lg-6">
+<section class="pa-card pa-day h-100" aria-label="{{ dia.data|date:'l, d/m' }}">
+  <div class="pa-day-head">
+    <div class="pa-date-chip"><span>{{ dia.data|date:"D" }}</span><b>{{ dia.data|date:"d" }}</b></div>
+    <div><h2>{{ dia.data|date:"l"|capfirst }}</h2><p>{% with n=dia.sessoes|length %}{% if n %}{{ n }} sess{{ n|pluralize:"ão,ões" }}{% else %}Dia livre{% endif %}{% endwith %}</p></div>
+  </div>
   {% for s in dia.sessoes %}
-    <li class="list-group-item slot-ocupado {% if destaque == s.pk|stringformat:'s' %}border border-primary border-3{% endif %}">
-      <a class="d-flex align-items-center gap-2 text-decoration-none text-body py-1" href="{% url 'sessao_detalhe' s.pk %}">
-        <strong style="min-width:60px;white-space:nowrap">{{ s.inicio|time:"H\hi" }}</strong>
-        <span class="flex-fill">👤 {{ s.paciente.nome }}</span>
-        {% if s.pagamento.status == 'pago' %}<span class="badge text-bg-success">✔ Pago</span>
-        {% else %}<span class="badge text-bg-warning">⏱ A receber</span>{% endif %}
-      </a>
-    </li>
+    <a class="pa-slot {% if destaque == s.pk|stringformat:'s' %}destaque{% endif %}" href="{% url 'sessao_detalhe' s.pk %}">
+      <span class="pa-time">{{ s.inicio|time:"H\hi" }}</span>
+      <span class="pa-avatar" aria-hidden="true">{{ s.paciente.nome|iniciais }}</span>
+      <span class="pa-slot-name">{{ s.paciente.nome }}</span>
+      {% if s.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>
+      {% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}
+    </a>
   {% empty %}
-    <li class="list-group-item text-muted fst-italic">Nenhuma sessão – dia livre</li>
+    <div class="pa-empty">Nenhuma sessão – dia livre</div>
   {% endfor %}
-  </ul>
 </section>
+</div>
 {% endfor %}
-<a class="btn btn-primary btn-lg w-100 mt-2" href="{% url 'sessao_nova' %}">＋ Nova sessão</a>
+</div>
 {% endblock %}

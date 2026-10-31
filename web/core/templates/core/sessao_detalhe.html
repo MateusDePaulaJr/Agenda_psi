@@ -1,16 +1,23 @@
 {% extends "core/base.html" %}
+{% load psiagenda %}
 {% block title %}Sessão – PsiAgenda{% endblock %}
 {% block content %}
-<a href="{% url 'agenda' %}?semana={{ sessao.inicio|date:'Y-m-d' }}&destaque={{ sessao.pk }}">← Ver na agenda</a>
-<h1 class="h4 my-3">Sessão</h1>
-<dl class="card card-body">
-  <dt>Paciente</dt><dd>{{ sessao.paciente.nome }}</dd>
-  <dt>Data e horário</dt><dd>{{ sessao.inicio|date:"d/m/Y" }}, {{ sessao.inicio|time:"H\hi" }} – {{ sessao.fim|time:"H\hi" }}</dd>
-  <dt>Situação</dt><dd>{{ sessao.get_status_display }}</dd>
-  <dt>Pagamento</dt><dd>R$ {{ sessao.pagamento.valor }} ·
-    {% if sessao.pagamento.status == 'pago' %}<span class="badge text-bg-success">✔ Pago</span>{% else %}<span class="badge text-bg-warning">⏱ A receber</span>{% endif %}</dd>
-</dl>
-<div class="d-flex gap-2 flex-wrap">
+<a class="text-decoration-none" href="{% url 'agenda' %}?semana={{ sessao.inicio|date:'Y-m-d' }}&destaque={{ sessao.pk }}">← Ver na agenda</a>
+<div class="row g-3 mt-1"><div class="col-lg-7">
+<div class="pa-card"><div class="pa-card-body p-4">
+  <div class="d-flex align-items-center gap-3 mb-3">
+    <span class="pa-avatar" style="width:52px;height:52px;font-size:1.1rem" aria-hidden="true">{{ sessao.paciente.nome|iniciais }}</span>
+    <div><h1 class="pa-page-title">{{ sessao.paciente.nome }}</h1>
+    <p class="pa-subtitle">{{ sessao.inicio|date:"l, d/m/Y"|capfirst }} · {{ sessao.inicio|time:"H\hi" }} – {{ sessao.fim|time:"H\hi" }}</p></div>
+  </div>
+  <dl class="row mb-0">
+    <dt class="col-5">Situação</dt><dd class="col-7">{{ sessao.get_status_display }}</dd>
+    <dt class="col-5">Valor</dt><dd class="col-7">R$ {{ sessao.pagamento.valor }}</dd>
+    <dt class="col-5">Pagamento</dt><dd class="col-7">
+      {% if sessao.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>{% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}</dd>
+  </dl>
+</div></div>
+<div class="d-flex gap-2 flex-wrap mt-3">
   {% if sessao.pagamento.status == 'a_receber' and sessao.status != 'cancelada' %}<a class="btn btn-success" href="{% url 'pagamento_registrar' sessao.pk %}">✔ Marcar como pago</a>{% endif %}
   {% if sessao.status != 'cancelada' %}<a class="btn btn-outline-primary" href="{% url 'prontuario_registrar' sessao.pk %}">📝 Prontuário</a>{% endif %}
   <a class="btn btn-primary" href="{% url 'sessao_nova' %}">Agendar outra</a>
@@ -18,4 +25,5 @@
   <form method="post" action="{% url 'sessao_cancelar' sessao.pk %}">{% csrf_token %}<button class="btn btn-outline-danger">Cancelar sessão</button></form>
   {% endif %}
 </div>
+</div></div>
 {% endblock %}
