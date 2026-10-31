@@ -174,6 +174,16 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - **Marcar lembrete como enviado:** como o link não tem como confirmar o envio, o botão ao lado registra à mão "Lembrete enviado em dd/mm hh:mm" na sessão.
 - **Privacidade:** a mensagem só tem nomes, data e horário, nunca dados clínicos (não escreva informações clínicas na mensagem personalizada). Ao enviar, o texto e o número do paciente passam pelo WhatsApp (Meta), sujeitos aos termos e à política de privacidade dele.
 
+## Painel
+
+- Depois do login a psicóloga cai no **Painel** (`/painel/`, primeiro item do menu; o logo também leva para lá). A **Agenda** continua em `/`.
+- **Hoje:** as sessões do dia (sem as canceladas) com horário, paciente, situação e pagamento; nas agendadas que ainda vão acontecer aparecem os botões de lembrete pelo WhatsApp.
+- **Indicadores:** sessões na semana (segunda a domingo, sem canceladas); recebido e a receber no mês (mesma regra do Financeiro: pelo mês da sessão, sem canceladas); comparecimento nos últimos 30 dias (realizadas ÷ (realizadas + faltas), "—" quando não há nenhuma); pacientes ativos.
+- **Próximas sessões** (as 5 próximas agendadas) e **Pagamentos pendentes** (as 5 sessões realizadas mais antigas ainda a receber, com o botão *Registrar pagamento*).
+- **Gráfico** do valor recebido nos últimos 6 meses, desenhado no servidor em SVG (sem JavaScript nem bibliotecas externas), com uma tabela equivalente para leitores de tela.
+- **Lembretes de amanhã:** atalho que abre a seção de lembretes da agenda, só quando há sessões agendadas para o dia seguinte.
+- Os dados são montados em `services.dados_painel(usuario, agora)` com um número fixo de consultas ao banco.
+
 ## Segurança e backup
 
 - **Bloqueio de login:** após 5 tentativas erradas seguidas para o mesmo usuário, o login (inclusive o do `/admin/`) fica bloqueado por 15 minutos, mesmo com a senha certa. O contador fica no banco (tabela `core_tentativalogin`) e zera no primeiro login bem-sucedido. Para liberar antes, apague o registro do usuário em *Admin → Tentativas de login*.

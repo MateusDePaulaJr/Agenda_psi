@@ -61,7 +61,7 @@ def test_libera_depois_de_15_minutos(client, usuaria):
     with mock.patch("django.utils.timezone.now", return_value=agora + timedelta(minutes=15, seconds=1)):
         resp = entrar(client, password=SENHA)
     assert resp.status_code == 302
-    assert resp["Location"] == reverse("agenda")
+    assert resp["Location"] == reverse("painel")
 
 
 def test_falha_apos_bloqueio_expirado_recomeca_contagem(client, usuaria):
