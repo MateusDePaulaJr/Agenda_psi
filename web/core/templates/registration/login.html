@@ -16,7 +16,7 @@
       <p class="pa-subtitle">Agenda, pacientes e financeiro do seu consultório</p>
     </div>
     <div class="pa-card"><div class="pa-card-body p-4">
-      {% if form.errors %}<div class="alert alert-danger" role="alert">⚠ Usuário ou senha inválidos.</div>{% endif %}
+      {% if form.errors %}<div class="alert alert-danger" role="alert">⚠ {% if form.non_field_errors %}{{ form.non_field_errors.0 }}{% else %}Usuário ou senha inválidos.{% endif %}</div>{% endif %}
       <form method="post">
         {% csrf_token %}
         <label class="form-label" for="id_username">Usuário</label>

@@ -50,3 +50,7 @@ exports/
 *.sqlite3
 staticfiles/
 .env
+
+# Backups (contêm dados clínicos)
+backup-psiagenda-*.json.gz
+*.dump
