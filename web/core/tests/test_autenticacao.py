@@ -1,11 +1,6 @@
-import pytest
-from django.contrib.auth.models import User
+import pytest  # noqa: F401
 from django.urls import reverse
 
-
-@pytest.fixture
-def usuaria(db):
-    return User.objects.create_user("ana", password="SenhaForte#2026")
 
 
 def test_agenda_exige_login(client):
