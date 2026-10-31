@@ -1,6 +1,10 @@
 from datetime import date, timedelta
 
+import time
+
 from django.contrib import messages
+from django.db import connection
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -166,3 +170,20 @@ def paciente_historico(request, pk):
     paciente = get_object_or_404(Paciente, pk=pk, usuario=request.user)
     registros = Prontuario.objects.filter(sessao__paciente=paciente).select_related("sessao").order_by("-sessao__inicio")
     return render(request, "core/paciente_historico.html", {"paciente": paciente, "registros": registros})
+
+
+def saude(request):
+    """Endpoint de monitoramento (health check) usado pelo Render e pelo UptimeRobot.
+
+    Não exige login e não expõe dados: só informa se a aplicação e o banco respondem.
+    """
+    inicio = time.perf_counter()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        banco = "ok"
+    except Exception:  # pragma: no cover - só ocorre com o banco fora do ar
+        banco = "erro"
+    status = 200 if banco == "ok" else 503
+    tempo_ms = round((time.perf_counter() - inicio) * 1000, 1)
+    return JsonResponse({"status": "ok" if status == 200 else "erro", "banco": banco, "tempo_ms": tempo_ms}, status=status)
