@@ -307,3 +307,8 @@ a { color: var(--pa-primary); }
 .pa-cartao-info dt { color: var(--pa-muted); font-weight: 600; }
 .pa-cartao-info dd { margin: 0; }
 .pa-publico-rodape { text-align: center; color: var(--pa-muted); font-size: .85rem; margin: 1.25rem 0 0; }
+
+/* Barra superior: no celular, "Meu perfil" vira só o ícone para não quebrar em duas linhas. */
+.pa-ico-perfil { vertical-align: -3px; }
+.pa-rotulo-perfil { margin-left: .35rem; white-space: nowrap; }
+@media (max-width: 575.98px) { .pa-rotulo-perfil { display: none; } }
