@@ -16,7 +16,7 @@ Projeto da disciplina **Projeto de Software**: sistema web para uma psicóloga a
 | RF04 | **Bloqueio de horários sobrepostos** com alerta e sugestão de horários livres |
 | RF05 | Pagamento "a receber" gerado automaticamente; marcar como pago |
 | RF06 | Prontuário por sessão e histórico do paciente |
-| RF07 | Resumo financeiro mensal |
+| RF07 | Resumo financeiro mensal, exportação em CSV e recibo imprimível |
 
 ## Como executar (Windows / PowerShell)
 
@@ -158,6 +158,12 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - Em **Nova sessão**, o campo *Repetir* permite agendar o mesmo paciente toda semana ou a cada 2 semanas, no mesmo horário, de 2 a 24 sessões (padrão 4).
 - É tudo ou nada: todas as datas são verificadas antes; se alguma estiver ocupada, nada é criado e a tela lista cada data e quem ocupa o horário, mantendo o formulário preenchido.
 - Cada sessão da série é uma sessão normal (com seu pagamento "a receber") e guarda o mesmo identificador `serie`. No detalhe aparece "Sessão X de N da série" e o botão *Cancelar esta e as próximas da série*, que só cancela as sessões ainda agendadas e futuras (realizadas, faltas e passadas não mudam).
+
+## Recibos e relatórios
+
+- **Recibo:** no detalhe de uma sessão paga, o botão *Recibo* abre uma página pronta para imprimir, com nome da psicóloga, paciente, data/horário e duração, valor (R$ 1.234,56), data e forma de pagamento, número (`ANO-ID do pagamento`), cidade/data e linha de assinatura. *Imprimir / Salvar PDF* usa a impressão do navegador (sem biblioteca de PDF no servidor). O recibo não mostra prontuário, observações nem telefone.
+- **Meu perfil** (no topo da tela): nome no recibo, CRP, CPF/CNPJ e cidade, todos opcionais; o que ficar em branco não aparece no recibo.
+- **Financeiro:** *Exportar CSV* baixa `financeiro-AAAA-MM.csv` do mês escolhido (separador `;`, vírgula decimal, UTF-8 com BOM, abre direto no Excel em português), com as mesmas sessões do resumo (canceladas ficam de fora). *Imprimir* gera o resumo do mês sem menu nem botões.
 
 ## Segurança e backup
 
