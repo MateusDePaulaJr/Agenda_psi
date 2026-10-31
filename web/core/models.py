@@ -125,3 +125,21 @@ class TentativaLogin(models.Model):
 
     def __str__(self):
         return f"{self.username} ({self.falhas} falhas)"
+
+
+class PerfilProfissional(models.Model):
+    """Dados da psicóloga exibidos no recibo. Todos opcionais: o que estiver vazio não aparece."""
+
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_profissional")
+    nome_exibicao = models.CharField("nome no recibo", max_length=120, blank=True)
+    crp = models.CharField("CRP", max_length=20, blank=True)
+    documento = models.CharField("CPF ou CNPJ", max_length=20, blank=True)
+    cidade = models.CharField("cidade", max_length=80, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "perfil profissional"
+        verbose_name_plural = "perfis profissionais"
+
+    def __str__(self):
+        return f"Perfil de {self.usuario}"

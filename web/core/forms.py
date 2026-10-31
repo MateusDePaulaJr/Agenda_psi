@@ -6,7 +6,7 @@ from django.contrib.admin.forms import AdminAuthenticationForm
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
-from .models import Paciente, Pagamento, Prontuario
+from .models import Paciente, Pagamento, PerfilProfissional, Prontuario
 from .services import (
     MAX_SESSOES_SERIE,
     MIN_SESSOES_SERIE,
@@ -154,3 +154,20 @@ class ProntuarioForm(forms.ModelForm):
         fields = ["evolucao"]
         labels = {"evolucao": "Evolução da sessão (obrigatório)"}
         widgets = {"evolucao": forms.Textarea(attrs={"class": "form-control", "rows": 8})}
+
+
+class PerfilProfissionalForm(forms.ModelForm):
+    class Meta:
+        model = PerfilProfissional
+        fields = ["nome_exibicao", "crp", "documento", "cidade"]
+        labels = {
+            "nome_exibicao": "Nome no recibo (opcional; vazio usa o nome da conta)",
+            "crp": "CRP (opcional, ex.: 06/123456)",
+            "documento": "CPF ou CNPJ (opcional)",
+            "cidade": "Cidade (opcional, ex.: São Paulo/SP)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for campo in self.fields.values():
+            campo.widget.attrs["class"] = "form-control"

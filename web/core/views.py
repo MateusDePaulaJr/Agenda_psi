@@ -4,7 +4,7 @@ import time
 
 from django.contrib import messages
 from django.db import connection
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -14,8 +14,8 @@ from decimal import Decimal
 
 from django.db.models import Sum
 
-from .forms import PacienteForm, PagamentoForm, ProntuarioForm, SessaoForm
-from .models import Paciente, Pagamento, Prontuario, Sessao
+from .forms import PacienteForm, PagamentoForm, PerfilProfissionalForm, ProntuarioForm, SessaoForm
+from .models import Paciente, Pagamento, PerfilProfissional, Prontuario, Sessao
 from .services import (
     REPETICOES,
     HorarioOcupado,
@@ -23,7 +23,9 @@ from .services import (
     agendar_serie,
     agendar_sessao,
     cancelar_serie_a_partir_de,
+    gerar_csv_financeiro,
     horarios_livres,
+    numero_recibo,
 )
 
 
@@ -167,17 +169,30 @@ def pagamento_registrar(request, pk):
     return render(request, "core/pagamento_form.html", {"form": form, "pagamento": pagamento})
 
 
+def _mes_selecionado(request):
+    """Lê ?mes=AAAA-M (ou AAAA-MM); valor ausente ou inválido vira o mês atual."""
+    hoje = timezone.localdate()
+    try:
+        ano, mes = map(int, request.GET.get("mes", "").split("-"))
+        if not (1 <= mes <= 12 and 1 <= ano <= 9999):
+            raise ValueError
+    except ValueError:
+        ano, mes = hoje.year, hoje.month
+    return ano, mes
+
+
+def _pagamentos_do_mes(usuario, ano, mes):
+    """Pagamentos das sessões do mês (exceto canceladas), só da usuária logada."""
+    return Pagamento.objects.filter(
+        sessao__paciente__usuario=usuario, sessao__inicio__year=ano, sessao__inicio__month=mes
+    ).exclude(sessao__status=Sessao.CANCELADA).select_related("sessao__paciente")
+
+
 @login_required
 def financeiro(request):
     """Resumo mensal: total recebido, a receber e pacientes em aberto (RF07)."""
-    hoje = timezone.localdate()
-    try:
-        ano, mes = map(int, request.GET.get("mes", f"{hoje.year}-{hoje.month}").split("-"))
-    except ValueError:
-        ano, mes = hoje.year, hoje.month
-    pagamentos = Pagamento.objects.filter(
-        sessao__paciente__usuario=request.user, sessao__inicio__year=ano, sessao__inicio__month=mes
-    ).exclude(sessao__status=Sessao.CANCELADA).select_related("sessao__paciente")
+    ano, mes = _mes_selecionado(request)
+    pagamentos = _pagamentos_do_mes(request.user, ano, mes)
     recebido = pagamentos.filter(status=Pagamento.PAGO).aggregate(t=Sum("valor"))["t"] or Decimal("0")
     pendentes = pagamentos.filter(status=Pagamento.A_RECEBER)
     a_receber = pendentes.aggregate(t=Sum("valor"))["t"] or Decimal("0")
@@ -186,6 +201,50 @@ def financeiro(request):
         "ano": ano, "mes": mes, "recebido": recebido, "a_receber": a_receber,
         "em_aberto": em_aberto, "pendentes": pendentes.order_by("sessao__inicio"),
     })
+
+
+@login_required
+def financeiro_csv(request):
+    """Exporta as sessões do mês em CSV para abrir no Excel (financeiro-AAAA-MM.csv)."""
+    ano, mes = _mes_selecionado(request)
+    pagamentos = _pagamentos_do_mes(request.user, ano, mes).order_by("sessao__inicio", "pk")
+    resposta = HttpResponse(gerar_csv_financeiro(pagamentos), content_type="text/csv; charset=utf-8")
+    resposta["Content-Disposition"] = f'attachment; filename="financeiro-{ano:04d}-{mes:02d}.csv"'
+    return resposta
+
+
+@login_required
+def recibo(request, pk):
+    """Recibo imprimível de uma sessão paga (o navegador salva em PDF).
+
+    Mostra só o necessário para um recibo: nada do prontuário nem observações.
+    """
+    pagamento = get_object_or_404(
+        Pagamento.objects.select_related("sessao__paciente"), sessao__pk=pk, sessao__paciente__usuario=request.user
+    )
+    if pagamento.status != Pagamento.PAGO:
+        messages.error(request, "O recibo só fica disponível depois que o pagamento é registrado como pago.")
+        return redirect("sessao_detalhe", pk=pk)
+    perfil = PerfilProfissional.objects.filter(usuario=request.user).first()
+    nome = (perfil and perfil.nome_exibicao) or request.user.get_full_name() or request.user.username
+    return render(request, "core/recibo.html", {
+        "pagamento": pagamento, "sessao": pagamento.sessao, "perfil": perfil, "profissional": nome,
+        "numero": numero_recibo(pagamento), "emitido_em": timezone.localdate(),
+    })
+
+
+@login_required
+def perfil(request):
+    """Meu perfil: dados opcionais que aparecem no recibo (nome, CRP, CPF/CNPJ, cidade)."""
+    atual = PerfilProfissional.objects.filter(usuario=request.user).first()
+    form = PerfilProfissionalForm(request.POST or None, instance=atual)
+    if request.method == "POST" and form.is_valid():
+        novo = form.save(commit=False)
+        novo.usuario = request.user
+        novo.save()
+        messages.success(request, "Perfil salvo.")
+        return redirect("perfil")
+    return render(request, "core/perfil.html", {"form": form})
 
 
 @login_required
