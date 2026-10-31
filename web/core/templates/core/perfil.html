@@ -2,11 +2,17 @@
 {% block title %}Meu perfil – PsiAgenda{% endblock %}
 {% block content %}
 <h1 class="pa-page-title">Meu perfil</h1>
-<p class="pa-subtitle">Dados que aparecem nos recibos. Todos são opcionais: o que ficar em branco não é exibido.</p>
+<p class="pa-subtitle">Dados que aparecem nos recibos e nos lembretes. Todos são opcionais: o que ficar em branco não é exibido.</p>
 <div class="pa-card mt-3" style="max-width:640px"><div class="pa-card-body p-4">
 <form method="post" novalidate>
   {% csrf_token %}
   {% include "core/form_campos.html" %}
+  <div class="pa-marcadores mb-3" id="ajuda-lembrete">
+    <p class="mb-1">Você pode usar estes marcadores na mensagem de lembrete:</p>
+    <ul>{% for codigo, descricao in marcadores.items %}<li><code>{{ "{" }}{{ codigo }}{{ "}" }}</code> – {{ descricao }}</li>{% endfor %}</ul>
+    <p class="mb-0">Mensagem padrão: <em>{{ mensagem_padrao }}</em></p>
+    <p class="mb-0">Não coloque informações clínicas: o texto passa pelo WhatsApp (Meta) quando você envia.</p>
+  </div>
   <button class="btn btn-primary w-100">Salvar perfil</button>
 </form>
 </div></div>

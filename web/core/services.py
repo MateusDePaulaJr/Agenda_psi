@@ -2,9 +2,11 @@
 import csv
 import io
 import math
+import re
 import uuid
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
+from urllib.parse import quote
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -175,6 +177,90 @@ def gerar_csv_financeiro(pagamentos):
             p.get_forma_pagamento_display(),
         ])
     return saida.getvalue()
+
+
+def nome_profissional(usuario, perfil=None):
+    """Nome da psicóloga: o do perfil, senão o nome da conta, senão o usuário."""
+    return (perfil and perfil.nome_exibicao) or usuario.get_full_name() or usuario.username
+
+
+# --- Lembretes pelo WhatsApp (links wa.me; nenhuma mensagem é enviada pelo sistema) ---
+
+MENSAGEM_LEMBRETE_PADRAO = (
+    "Olá, {primeiro_nome}! Passando para lembrar da sua sessão de {dia_semana}, {data} às {hora}. "
+    "Até lá! – {profissional}"
+)
+
+# Marcadores aceitos na mensagem: só nomes, data e horário (nada clínico).
+MARCADORES_LEMBRETE = {
+    "paciente": "nome completo do paciente",
+    "primeiro_nome": "primeiro nome do paciente",
+    "data": "data da sessão (ex.: 03/11)",
+    "hora": "horário da sessão (ex.: 14h30)",
+    "dia_semana": "dia da semana (ex.: terça-feira)",
+    "profissional": "seu nome (o do perfil ou o da conta)",
+}
+
+DIAS_DA_SEMANA = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+
+# Só {palavra}: qualquer outra coisa entre chaves (ex.: {paciente.__class__}) fica como está.
+_MARCADOR = re.compile(r"\{(\w+)\}")
+
+
+def numero_whatsapp(telefone):
+    """Número no formato do wa.me (55 + DDD + número, só dígitos) ou None se não der para usar.
+
+    Zeros à esquerda (ex.: "011 ...") são ignorados. Depois, 10 ou 11 dígitos
+    (DDD + número) ganham o 55 na frente; 12 ou 13 dígitos começando com 55 já
+    estão completos. Qualquer outra coisa é considerada inválida.
+    """
+    digitos = re.sub(r"\D", "", telefone or "").lstrip("0")
+    if len(digitos) in (10, 11):
+        return f"55{digitos}"
+    if digitos.startswith("55") and len(digitos) in (12, 13):
+        return digitos
+    return None
+
+
+def link_whatsapp(numero, texto):
+    """Link click-to-chat: abre o WhatsApp com o texto pronto; quem envia é a psicóloga."""
+    return f"https://wa.me/{numero}?text={quote(texto, safe='')}"
+
+
+def mensagem_lembrete(sessao, modelo="", profissional=""):
+    """Monta o texto do lembrete trocando só os marcadores conhecidos.
+
+    Não usa str.format: o texto vem da usuária, então marcadores desconhecidos ou
+    com atributos (ex.: {paciente.__class__}) aparecem literalmente, sem erro e
+    sem expor nada. A troca é feita em uma única passada, então valores que
+    contenham chaves não são reprocessados.
+    """
+    inicio = timezone.localtime(sessao.inicio)
+    nome = sessao.paciente.nome.strip()
+    valores = {
+        "paciente": nome,
+        "primeiro_nome": nome.split()[0] if nome else "",
+        "data": f"{inicio:%d/%m}",
+        "hora": f"{inicio:%H}h{inicio:%M}",
+        "dia_semana": DIAS_DA_SEMANA[inicio.weekday()],
+        "profissional": profissional,
+    }
+    texto = (modelo or "").strip() or MENSAGEM_LEMBRETE_PADRAO
+    return _MARCADOR.sub(lambda m: valores.get(m.group(1), m.group(0)), texto)
+
+
+def pode_lembrar(sessao):
+    """Lembrete só faz sentido para sessão agendada que ainda não começou."""
+    return sessao.status == Sessao.AGENDADA and sessao.inicio > timezone.now()
+
+
+def lembrete_whatsapp(sessao, perfil=None):
+    """Dados do lembrete de uma sessão: mensagem, número e link (link None se o telefone for inválido)."""
+    texto = mensagem_lembrete(
+        sessao, perfil.mensagem_lembrete if perfil else "", nome_profissional(sessao.paciente.usuario, perfil)
+    )
+    numero = numero_whatsapp(sessao.paciente.telefone)
+    return {"sessao": sessao, "mensagem": texto, "numero": numero, "url": link_whatsapp(numero, texto) if numero else None}
 
 
 def horarios_livres(usuario, dia, duracao=50, inicio_expediente=8, fim_expediente=20):

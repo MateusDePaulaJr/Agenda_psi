@@ -11,6 +11,22 @@
   <span class="flex-fill text-center fw-semibold">{{ segunda|date:"d/m" }} a {{ domingo|date:"d/m/Y" }}</span>
   <a class="pa-icon-btn" href="?semana={{ proxima|date:'Y-m-d' }}" aria-label="Próxima semana">›</a>
 </div>
+{% if lembretes_amanha %}
+<details class="pa-card pa-lembretes-amanha mb-3">
+  <summary>💬 Lembretes de amanhã <span class="pa-badge pa-badge-serie">{{ lembretes_amanha|length }} sess{{ lembretes_amanha|length|pluralize:"ão,ões" }}</span></summary>
+  <ul class="pa-list">
+  {% for item in lembretes_amanha %}
+    <li>
+      <span class="pa-time">{{ item.sessao.inicio|time:"H\hi" }}</span>
+      <div class="flex-fill">
+        <span class="pa-slot-name d-block">{{ item.sessao.paciente.nome }}</span>
+        {% include "core/lembrete_acoes.html" with proximo=request.get_full_path %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</details>
+{% endif %}
 <div class="row g-3">
 {% for dia in dias %}
 <div class="col-12 col-lg-6">

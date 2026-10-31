@@ -43,6 +43,9 @@ class Sessao(models.Model):
     # Identifica as sessões criadas juntas como recorrentes (semanal/quinzenal).
     # Vazio para sessões avulsas.
     serie = models.UUIDField(null=True, blank=True, editable=False, db_index=True)
+    # Marcado à mão pela psicóloga depois de enviar o lembrete pelo WhatsApp
+    # (o link wa.me não tem como confirmar o envio).
+    lembrete_enviado_em = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -128,13 +131,15 @@ class TentativaLogin(models.Model):
 
 
 class PerfilProfissional(models.Model):
-    """Dados da psicóloga exibidos no recibo. Todos opcionais: o que estiver vazio não aparece."""
+    """Dados da psicóloga exibidos no recibo e no lembrete. Todos opcionais: o que estiver vazio não aparece."""
 
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_profissional")
     nome_exibicao = models.CharField("nome no recibo", max_length=120, blank=True)
     crp = models.CharField("CRP", max_length=20, blank=True)
     documento = models.CharField("CPF ou CNPJ", max_length=20, blank=True)
     cidade = models.CharField("cidade", max_length=80, blank=True)
+    # Texto do lembrete pelo WhatsApp; vazio usa a mensagem padrão.
+    mensagem_lembrete = models.TextField("mensagem de lembrete", max_length=1000, blank=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:

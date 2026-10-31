@@ -9,6 +9,7 @@ from django.utils import timezone
 from .models import Paciente, Pagamento, PerfilProfissional, Prontuario
 from .services import (
     MAX_SESSOES_SERIE,
+    MENSAGEM_LEMBRETE_PADRAO,
     MIN_SESSOES_SERIE,
     limpar_falhas_login,
     minutos_de_bloqueio,
@@ -159,15 +160,21 @@ class ProntuarioForm(forms.ModelForm):
 class PerfilProfissionalForm(forms.ModelForm):
     class Meta:
         model = PerfilProfissional
-        fields = ["nome_exibicao", "crp", "documento", "cidade"]
+        fields = ["nome_exibicao", "crp", "documento", "cidade", "mensagem_lembrete"]
         labels = {
             "nome_exibicao": "Nome no recibo (opcional; vazio usa o nome da conta)",
             "crp": "CRP (opcional, ex.: 06/123456)",
             "documento": "CPF ou CNPJ (opcional)",
             "cidade": "Cidade (opcional, ex.: São Paulo/SP)",
+            "mensagem_lembrete": "Mensagem de lembrete pelo WhatsApp (opcional; vazio usa a mensagem padrão)",
         }
+        widgets = {"mensagem_lembrete": forms.Textarea(attrs={"rows": 4, "placeholder": MENSAGEM_LEMBRETE_PADRAO})}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for campo in self.fields.values():
             campo.widget.attrs["class"] = "form-control"
+        self.fields["mensagem_lembrete"].widget.attrs["aria-describedby"] = "ajuda-lembrete"
+
+    def clean_mensagem_lembrete(self):
+        return self.cleaned_data["mensagem_lembrete"].strip()

@@ -20,6 +20,12 @@
       {% if sessao.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>{% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}</dd>
   </dl>
 </div></div>
+{% if lembrete %}
+<section class="pa-card pa-lembrete mt-3" aria-labelledby="titulo-lembrete"><div class="pa-card-body">
+  <h2 class="pa-lembrete-titulo" id="titulo-lembrete">Lembrete ao paciente</h2>
+  {% include "core/lembrete_acoes.html" with item=lembrete proximo="" %}
+</div></section>
+{% endif %}
 <div class="d-flex gap-2 flex-wrap mt-3">
   {% if sessao.pagamento.status == 'a_receber' and sessao.status != 'cancelada' %}<a class="btn btn-success" href="{% url 'pagamento_registrar' sessao.pk %}">✔ Marcar como pago</a>{% endif %}
   {% if sessao.pagamento.status == 'pago' %}<a class="btn btn-outline-primary" href="{% url 'recibo' sessao.pk %}">🧾 Recibo</a>{% endif %}

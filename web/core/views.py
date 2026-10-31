@@ -9,6 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from decimal import Decimal
 
@@ -17,6 +19,8 @@ from django.db.models import Sum
 from .forms import PacienteForm, PagamentoForm, PerfilProfissionalForm, ProntuarioForm, SessaoForm
 from .models import Paciente, Pagamento, PerfilProfissional, Prontuario, Sessao
 from .services import (
+    MARCADORES_LEMBRETE,
+    MENSAGEM_LEMBRETE_PADRAO,
     REPETICOES,
     HorarioOcupado,
     SerieComConflito,
@@ -25,7 +29,10 @@ from .services import (
     cancelar_serie_a_partir_de,
     gerar_csv_financeiro,
     horarios_livres,
+    lembrete_whatsapp,
+    nome_profissional,
     numero_recibo,
+    pode_lembrar,
 )
 
 
@@ -55,6 +62,7 @@ def agenda(request):
         if i < 5 or do_dia:
             dias.append({"data": dia, "sessoes": do_dia})
     contexto = {
+        "lembretes_amanha": _lembretes_de_amanha(request.user),
         "dias": dias,
         "segunda": segunda,
         "domingo": segunda + timedelta(days=6),
@@ -63,6 +71,19 @@ def agenda(request):
         "destaque": request.GET.get("destaque"),
     }
     return render(request, "core/agenda.html", contexto)
+
+
+def _lembretes_de_amanha(usuario):
+    """Sessões agendadas de amanhã (hora local), cada uma com o seu link do WhatsApp."""
+    amanha = timezone.localdate() + timedelta(days=1)
+    tz = timezone.get_current_timezone()
+    inicio = timezone.make_aware(timezone.datetime.combine(amanha, timezone.datetime.min.time()), tz)
+    fim = timezone.make_aware(timezone.datetime.combine(amanha + timedelta(days=1), timezone.datetime.min.time()), tz)
+    sessoes = Sessao.objects.filter(
+        paciente__usuario=usuario, status=Sessao.AGENDADA, inicio__gte=inicio, inicio__lt=fim
+    ).select_related("paciente__usuario")
+    perfil = PerfilProfissional.objects.filter(usuario=usuario).first()
+    return [lembrete_whatsapp(s, perfil) for s in sessoes if pode_lembrar(s)]
 
 
 @login_required
@@ -104,7 +125,29 @@ def sessao_nova(request):
 @login_required
 def sessao_detalhe(request, pk):
     sessao = get_object_or_404(Sessao.objects.select_related("paciente", "pagamento"), pk=pk, paciente__usuario=request.user)
-    return render(request, "core/sessao_detalhe.html", {"sessao": sessao, "posicao_serie": sessao.posicao_na_serie()})
+    lembrete = None
+    if pode_lembrar(sessao):
+        lembrete = lembrete_whatsapp(sessao, PerfilProfissional.objects.filter(usuario=request.user).first())
+    return render(request, "core/sessao_detalhe.html", {
+        "sessao": sessao, "posicao_serie": sessao.posicao_na_serie(), "lembrete": lembrete,
+    })
+
+
+@login_required
+@require_POST
+def sessao_lembrete_enviado(request, pk):
+    """Registra que o lembrete foi enviado (marcação manual: o wa.me não confirma o envio)."""
+    sessao = get_object_or_404(Sessao, pk=pk, paciente__usuario=request.user)
+    if sessao.status != Sessao.AGENDADA:
+        messages.error(request, "Só dá para marcar lembrete de sessão agendada.")
+    else:
+        sessao.lembrete_enviado_em = timezone.now()
+        sessao.save(update_fields=["lembrete_enviado_em"])
+        messages.success(request, f"Lembrete de {sessao.paciente.nome} marcado como enviado.")
+    destino = request.POST.get("proximo", "")
+    if url_has_allowed_host_and_scheme(destino, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return redirect(destino)
+    return redirect("sessao_detalhe", pk=pk)
 
 
 @login_required
@@ -226,7 +269,7 @@ def recibo(request, pk):
         messages.error(request, "O recibo só fica disponível depois que o pagamento é registrado como pago.")
         return redirect("sessao_detalhe", pk=pk)
     perfil = PerfilProfissional.objects.filter(usuario=request.user).first()
-    nome = (perfil and perfil.nome_exibicao) or request.user.get_full_name() or request.user.username
+    nome = nome_profissional(request.user, perfil)
     return render(request, "core/recibo.html", {
         "pagamento": pagamento, "sessao": pagamento.sessao, "perfil": perfil, "profissional": nome,
         "numero": numero_recibo(pagamento), "emitido_em": timezone.localdate(),
@@ -235,7 +278,7 @@ def recibo(request, pk):
 
 @login_required
 def perfil(request):
-    """Meu perfil: dados opcionais que aparecem no recibo (nome, CRP, CPF/CNPJ, cidade)."""
+    """Meu perfil: dados opcionais do recibo (nome, CRP, CPF/CNPJ, cidade) e a mensagem de lembrete."""
     atual = PerfilProfissional.objects.filter(usuario=request.user).first()
     form = PerfilProfissionalForm(request.POST or None, instance=atual)
     if request.method == "POST" and form.is_valid():
@@ -244,7 +287,9 @@ def perfil(request):
         novo.save()
         messages.success(request, "Perfil salvo.")
         return redirect("perfil")
-    return render(request, "core/perfil.html", {"form": form})
+    return render(request, "core/perfil.html", {
+        "form": form, "marcadores": MARCADORES_LEMBRETE, "mensagem_padrao": MENSAGEM_LEMBRETE_PADRAO,
+    })
 
 
 @login_required
