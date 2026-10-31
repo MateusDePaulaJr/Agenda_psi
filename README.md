@@ -162,7 +162,7 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 ## Recibos e relatórios
 
 - **Recibo:** no detalhe de uma sessão paga, o botão *Recibo* abre uma página pronta para imprimir, com nome da psicóloga, paciente, data/horário e duração, valor (R$ 1.234,56), data e forma de pagamento, número (`ANO-ID do pagamento`), cidade/data e linha de assinatura. *Imprimir / Salvar PDF* usa a impressão do navegador (sem biblioteca de PDF no servidor). O recibo não mostra prontuário, observações nem telefone.
-- **Meu perfil** (no topo da tela): nome no recibo, CRP, CPF/CNPJ e cidade, todos opcionais; o que ficar em branco não aparece no recibo.
+- **Meu perfil** (no topo da tela): nome profissional, CRP, CPF/CNPJ e cidade, todos opcionais; o que ficar em branco não aparece no recibo.
 - **Financeiro:** *Exportar CSV* baixa `financeiro-AAAA-MM.csv` do mês escolhido (separador `;`, vírgula decimal, UTF-8 com BOM, abre direto no Excel em português), com as mesmas sessões do resumo (canceladas ficam de fora). *Imprimir* gera o resumo do mês sem menu nem botões.
 
 ## Lembretes pelo WhatsApp
@@ -183,6 +183,14 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - **Gráfico** do valor recebido nos últimos 6 meses, desenhado no servidor em SVG (sem JavaScript nem bibliotecas externas), com uma tabela equivalente para leitores de tela.
 - **Lembretes de amanhã:** atalho que abre a seção de lembretes da agenda, só quando há sessões agendadas para o dia seguinte.
 - Os dados são montados em `services.dados_painel(usuario, agora)` com um número fixo de consultas ao banco.
+
+## Perfil da psicóloga e página pública
+
+- **Meu perfil** é dividido em seções: *Identificação* (nome profissional, CRP, cor do avatar), *Apresentação* (mini bio de até 600 caracteres, abordagem, especialidades separadas por vírgula, público atendido, idiomas), *Atendimento*, *Contato público* (WhatsApp, e-mail, Instagram, site), *Página pública*, *Documentos do recibo* (CPF/CNPJ e cidade) e *Mensagem de lembrete*. Tudo é opcional.
+- **Padrões de atendimento:** a duração padrão (50 min se não for alterada, de 10 a 240) já vem preenchida em *Nova sessão*, e o valor padrão (se informado) em *Novo paciente*. Os dois podem ser mudados na hora.
+- **Avatar:** círculo com as iniciais do nome (títulos como "Dra." são ignorados) numa das 8 cores do tema, todas com contraste AA. Não há envio de foto: o Render gratuito não tem disco persistente; para isso seria preciso um armazenamento externo (ex.: S3/Cloudinary).
+- **Página pública (`/p/<endereço>/`):** desligada por padrão. Ao ativar (o CRP passa a ser obrigatório, como pede o Código de Ética para divulgação), qualquer pessoa com o link vê, sem login, um cartão com avatar, nome, CRP, abordagem, especialidades, bio, modalidade, público, idiomas e botões de contato (o WhatsApp abre com "Olá! Vi seu perfil e gostaria de saber sobre horários."). A cidade só aparece se *Mostrar a cidade* estiver marcado. **Nunca** aparecem CPF/CNPJ, valores, pacientes, agenda ou a mensagem de lembrete.
+- O endereço é criado a partir do nome (`dra-ana-souza`, `-2` se já existir) e pode ser editado. Em *Meu perfil* há o link com botão *Copiar* e a pré-visualização. Desligada, a página responde 404 para todos; só a própria psicóloga logada vê uma prévia marcada com `noindex`. Ligada, pode ser indexada por buscadores e tem as tags `description` e Open Graph para compartilhar.
 
 ## Segurança e backup
 
