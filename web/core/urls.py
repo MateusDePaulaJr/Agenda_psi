@@ -8,6 +8,7 @@ urlpatterns = [
     path("login/", auth_views.LoginView.as_view(authentication_form=LoginForm), name="login"),
     path("sair/", auth_views.LogoutView.as_view(), name="logout"),
     path("", views.agenda, name="agenda"),
+    path("painel/", views.painel, name="painel"),
     path("saude/", views.saude, name="saude"),
     path("sessoes/nova/", views.sessao_nova, name="sessao_nova"),
     path("sessoes/<int:pk>/", views.sessao_detalhe, name="sessao_detalhe"),

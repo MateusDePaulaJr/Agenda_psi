@@ -9,9 +9,10 @@ from decimal import Decimal, InvalidOperation
 from urllib.parse import quote
 
 from django.db import IntegrityError, transaction
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
-from .models import Pagamento, Sessao, TentativaLogin
+from .models import Paciente, Pagamento, PerfilProfissional, Sessao, TentativaLogin
 
 # Nome da restrição criada no PostgreSQL pela migração 0005 (última barreira contra sobreposição).
 RESTRICAO_SOBREPOSICAO = "sessao_sem_sobreposicao"
@@ -281,6 +282,145 @@ def horarios_livres(usuario, dia, duracao=50, inicio_expediente=8, fim_expedient
         if not any(s.fim > inicio for s in ocupados):
             livres.append(inicio)
     return livres
+
+
+# --- Painel (tela inicial) -----------------------------------------------------
+
+MESES_ABREVIADOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]
+MESES_NO_GRAFICO = 6
+LIMITE_LISTAS_PAINEL = 5
+# Geometria do gráfico de barras horizontais (unidades do viewBox do SVG).
+GRAFICO_LARGURA, GRAFICO_LINHA, GRAFICO_X_BARRA, GRAFICO_BARRA_MAX = 360, 34, 64, 172
+
+
+def _meia_noite(dia, tz):
+    from datetime import datetime
+
+    return timezone.make_aware(datetime.combine(dia, datetime.min.time()), tz)
+
+
+def _soma_mes(ano, mes, meses):
+    """(ano, mes) somado de `meses` meses (pode ser negativo)."""
+    total = ano * 12 + (mes - 1) + meses
+    return total // 12, total % 12 + 1
+
+
+def _saudacao(hora):
+    if hora < 12:
+        return "Bom dia"
+    return "Boa tarde" if hora < 18 else "Boa noite"
+
+
+def _grafico_recebido(meses):
+    """Acrescenta a cada mês a geometria da barra (largura e posição) e devolve a altura do SVG."""
+    maior = max((m["valor"] for m in meses), default=Decimal("0"))
+    for i, m in enumerate(meses):
+        largura = float(m["valor"] / maior * GRAFICO_BARRA_MAX) if maior else 0
+        m["largura"] = round(largura, 1)
+        m["y"] = i * GRAFICO_LINHA + 6
+        m["y_texto"] = i * GRAFICO_LINHA + 21
+    return {
+        "meses": meses, "largura": GRAFICO_LARGURA, "altura": len(meses) * GRAFICO_LINHA,
+        "x_barra": GRAFICO_X_BARRA, "x_valor": GRAFICO_LARGURA - 4,
+    }
+
+
+def dados_painel(usuario, agora):
+    """Tudo o que a tela inicial (Painel) mostra, só com os dados da usuária.
+
+    Usa um número fixo de consultas, qualquer que seja o volume de dados:
+    contagens e somas saem de agregações com filtros condicionais.
+    Os valores do mês seguem a mesma regra do Financeiro: contam as sessões
+    do mês (pela data da sessão), sem as canceladas.
+    """
+    tz = timezone.get_current_timezone()
+    local = timezone.localtime(agora, tz)
+    hoje = local.date()
+    inicio_hoje = _meia_noite(hoje, tz)
+    inicio_amanha = _meia_noite(hoje + timedelta(days=1), tz)
+    fim_amanha = _meia_noite(hoje + timedelta(days=2), tz)
+    segunda = hoje - timedelta(days=hoje.weekday())
+    inicio_semana, fim_semana = _meia_noite(segunda, tz), _meia_noite(segunda + timedelta(days=7), tz)
+    inicio_30_dias = agora - timedelta(days=30)
+
+    # Início de cada um dos últimos 6 meses (o último é o mês atual) e o início do próximo.
+    from datetime import date
+
+    limites = [
+        _meia_noite(date(*_soma_mes(hoje.year, hoje.month, i), 1), tz)
+        for i in range(-(MESES_NO_GRAFICO - 1), 2)
+    ]
+    inicio_mes, fim_mes = limites[-2], limites[-1]
+
+    perfil = PerfilProfissional.objects.filter(usuario=usuario).first()
+    sessoes = Sessao.objects.filter(paciente__usuario=usuario)
+    nao_canceladas = sessoes.exclude(status=Sessao.CANCELADA)
+
+    contagens = sessoes.aggregate(
+        semana=Count("pk", filter=Q(inicio__gte=inicio_semana, inicio__lt=fim_semana) & ~Q(status=Sessao.CANCELADA)),
+        realizadas=Count("pk", filter=Q(status=Sessao.REALIZADA, inicio__gte=inicio_30_dias, inicio__lte=agora)),
+        faltas=Count("pk", filter=Q(status=Sessao.FALTA, inicio__gte=inicio_30_dias, inicio__lte=agora)),
+        lembretes_amanha=Count(
+            "pk", filter=Q(status=Sessao.AGENDADA, inicio__gte=inicio_amanha, inicio__lt=fim_amanha, inicio__gt=agora)
+        ),
+    )
+
+    pagamentos = Pagamento.objects.filter(sessao__paciente__usuario=usuario).exclude(sessao__status=Sessao.CANCELADA)
+    pago, a_receber = Q(status=Pagamento.PAGO), Q(status=Pagamento.A_RECEBER)
+    somas = {
+        f"mes_{i}": Sum("valor", filter=pago & Q(sessao__inicio__gte=limites[i], sessao__inicio__lt=limites[i + 1]))
+        for i in range(MESES_NO_GRAFICO)
+    }
+    somas["a_receber_mes"] = Sum("valor", filter=a_receber & Q(sessao__inicio__gte=inicio_mes, sessao__inicio__lt=fim_mes))
+    somas["pendentes"] = Count("pk", filter=a_receber & Q(sessao__status=Sessao.REALIZADA))
+    totais = pagamentos.aggregate(**somas)
+
+    meses = []
+    for i in range(MESES_NO_GRAFICO):
+        inicio = timezone.localtime(limites[i], tz)
+        meses.append({
+            "inicio": inicio.date(),
+            "rotulo": f"{MESES_ABREVIADOS[inicio.month - 1]}/{inicio:%y}",
+            "valor": totais[f"mes_{i}"] or Decimal("0"),
+        })
+
+    hoje_lista = []
+    for s in nao_canceladas.filter(inicio__gte=inicio_hoje, inicio__lt=inicio_amanha).select_related(
+        "paciente__usuario", "pagamento"
+    ):
+        lembrete = lembrete_whatsapp(s, perfil) if s.status == Sessao.AGENDADA and s.inicio > agora else None
+        hoje_lista.append({"sessao": s, "lembrete": lembrete})
+
+    proximas = list(
+        sessoes.filter(status=Sessao.AGENDADA, inicio__gt=agora).select_related("paciente", "pagamento")
+        .order_by("inicio", "pk")[:LIMITE_LISTAS_PAINEL]
+    )
+    pendentes = list(
+        pagamentos.filter(a_receber, sessao__status=Sessao.REALIZADA).select_related("sessao__paciente")
+        .order_by("sessao__inicio", "pk")[:LIMITE_LISTAS_PAINEL]
+    )
+
+    realizadas, faltas = contagens["realizadas"], contagens["faltas"]
+    return {
+        "saudacao": _saudacao(local.hour),
+        "profissional": nome_profissional(usuario, perfil),
+        "hoje": hoje,
+        "amanha": hoje + timedelta(days=1),
+        "sessoes_hoje": hoje_lista,
+        "sessoes_semana": contagens["semana"],
+        "recebido_mes": meses[-1]["valor"],
+        "a_receber_mes": totais["a_receber_mes"] or Decimal("0"),
+        "realizadas_30_dias": realizadas,
+        "faltas_30_dias": faltas,
+        # Comparecimento: realizadas / (realizadas + faltas), em %; None quando não há dados.
+        "taxa_comparecimento": round(realizadas * 100 / (realizadas + faltas)) if realizadas + faltas else None,
+        "pacientes_ativos": Paciente.objects.filter(usuario=usuario, ativo=True).count(),
+        "proximas": proximas,
+        "pendentes": pendentes,
+        "total_pendentes": totais["pendentes"],
+        "grafico": _grafico_recebido(meses),
+        "lembretes_amanha": contagens["lembretes_amanha"],
+    }
 
 
 def _chave_login(username):

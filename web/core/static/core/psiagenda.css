@@ -160,3 +160,48 @@ a { color: var(--pa-primary); }
 .pa-lembretes-amanha .pa-list li { align-items: flex-start; }
 .pa-marcadores { background: var(--pa-primary-soft); border-radius: 12px; padding: .75rem 1rem; font-size: .9rem; }
 .pa-marcadores ul { margin: 0 0 .4rem; padding-left: 1.2rem; }
+
+/* === Dashboard === */
+/* Painel (tela inicial): indicadores, listas do dia e gráfico de recebidos. */
+.pa-painel-kpis { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+@media (min-width: 576px) { .pa-painel-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Desktop: 3 cartões na primeira linha e 2 mais largos na segunda, sem buraco. */
+@media (min-width: 992px) {
+  .pa-painel-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .pa-painel-kpis .pa-kpi { grid-column: span 2; }
+  .pa-painel-kpis .pa-kpi:nth-child(n+4) { grid-column: span 3; }
+}
+.pa-painel-kpis .pa-kpi { min-width: 0; }
+.pa-painel-kpis .pa-kpi strong { display: block; }
+.pa-painel-kpis .pa-kpi small { display: block; font-size: .8rem; margin-top: .1rem; }
+.pa-kpi-neutro { background: var(--pa-surface); border: 1px solid var(--pa-border); color: var(--pa-text); box-shadow: var(--pa-shadow); }
+.pa-kpi-neutro span, .pa-kpi-neutro small { color: var(--pa-muted); }
+.pa-painel-titulo { font-size: 1rem; font-weight: 700; margin: 0; padding: .9rem 1.1rem .5rem; display: flex; align-items: center; gap: .5rem; }
+.pa-painel-lista li { flex-wrap: wrap; padding: .6rem 1.1rem; }
+.pa-painel-sessao { display: flex; align-items: center; gap: .75rem; flex: 1 1 100%; min-width: 0; min-height: 44px; text-decoration: none; color: var(--pa-text); border-radius: 12px; }
+.pa-painel-sessao:hover .pa-slot-name { color: var(--pa-primary); text-decoration: underline; }
+.pa-painel-info { display: flex; flex-direction: column; gap: .2rem; flex: 1; min-width: 0; text-decoration: none; color: var(--pa-text); }
+.pa-painel-info small { color: var(--pa-muted); }
+.pa-painel-selos { display: flex; flex-wrap: wrap; gap: .3rem; }
+.pa-painel-badge-falta { background: var(--pa-danger-soft); color: var(--pa-danger); }
+.pa-painel-lembrete { flex: 1 1 100%; padding-left: calc(56px + 36px + 1.5rem); }
+@media (max-width: 575.98px) { .pa-painel-lembrete { padding-left: 0; } .pa-painel-lembrete .btn, .pa-painel-lembrete form { flex: 1 1 100%; } .pa-painel-lembrete form .btn { width: 100%; } }
+.pa-painel-vazio { color: var(--pa-muted); font-style: italic; }
+.pa-painel-rodape { margin: 0; padding: .6rem 1.1rem .9rem; border-top: 1px solid var(--pa-border); font-weight: 600; }
+.pa-painel-rodape a { text-decoration: none; }
+.pa-painel-pendente { justify-content: space-between; }
+.pa-painel-pendente .pa-painel-info { flex: 1 1 12rem; }
+.pa-painel-valor { white-space: nowrap; }
+.pa-painel-atalho { display: flex; align-items: center; gap: .75rem; padding: .75rem 1.1rem; min-height: 56px; text-decoration: none; color: var(--pa-text); border-left: 4px solid var(--pa-success); }
+.pa-painel-atalho:hover { background: var(--pa-primary-soft); }
+.pa-painel-atalho small { display: block; color: var(--pa-muted); }
+.pa-painel-grafico { margin: 0; padding: .25rem 1.1rem 1rem; }
+.pa-painel-grafico svg { display: block; width: 100%; max-width: 480px; height: auto; margin: 0 auto; overflow: visible; }
+.pa-grafico-base { stroke: var(--pa-border); stroke-width: 1; }
+.pa-grafico-barra { fill: var(--pa-primary); }
+.pa-painel-grafico g:hover .pa-grafico-barra { fill: var(--pa-primary-dark); }
+.pa-grafico-mes { fill: var(--pa-muted); font-size: 13px; font-weight: 600; }
+.pa-grafico-valor { fill: var(--pa-text); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pa-painel-legenda { color: var(--pa-muted); font-size: .8rem; margin-top: .5rem; text-align: center; }
+/* Atalho do painel abre a lista de lembretes da agenda: nomes longos não podem alargar a tela no celular. */
+.pa-lembretes-amanha .pa-list li > .flex-fill { min-width: 0; }

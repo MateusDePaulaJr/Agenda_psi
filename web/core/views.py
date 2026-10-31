@@ -27,6 +27,7 @@ from .services import (
     agendar_serie,
     agendar_sessao,
     cancelar_serie_a_partir_de,
+    dados_painel,
     gerar_csv_financeiro,
     horarios_livres,
     lembrete_whatsapp,
@@ -42,6 +43,12 @@ def _inicio_semana(texto):
     except ValueError:
         base = timezone.localdate()
     return base - timedelta(days=base.weekday())
+
+
+@login_required
+def painel(request):
+    """Tela inicial: resumo do dia, indicadores e pendências da psicóloga."""
+    return render(request, "core/painel.html", dados_painel(request.user, timezone.now()))
 
 
 @login_required
