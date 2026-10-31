@@ -1,7 +1,10 @@
 """Regras de negócio do PsiAgenda (camada de regras da arquitetura)."""
+import csv
+import io
 import math
 import uuid
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -124,6 +127,54 @@ def cancelar_serie_a_partir_de(sessao):
     )
     alvo = da_serie.filter(pk=sessao.pk) | da_serie.filter(inicio__gt=sessao.inicio, inicio__gte=timezone.now())
     return Sessao.objects.filter(pk__in=list(alvo.values_list("pk", flat=True))).update(status=Sessao.CANCELADA)
+
+
+def formatar_moeda(valor, simbolo=True):
+    """Decimal('1234.5') -> 'R$ 1.234,50'. Com simbolo=False -> '1.234,50'."""
+    try:
+        valor = Decimal(valor)
+    except (InvalidOperation, TypeError, ValueError):
+        return ""
+    texto = f"{valor:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"R$ {texto}" if simbolo else texto
+
+
+def numero_recibo(pagamento):
+    """Número do recibo: ano do pagamento + id do pagamento (ex.: 2026-000042)."""
+    ano = pagamento.data_pagamento.year if pagamento.data_pagamento else timezone.localdate().year
+    return f"{ano}-{pagamento.pk:06d}"
+
+
+CABECALHO_CSV_FINANCEIRO = [
+    "Data da sessão", "Paciente", "Status da sessão", "Valor",
+    "Status do pagamento", "Data do pagamento", "Forma de pagamento",
+]
+
+
+def _celula_segura(texto):
+    """Evita que o Excel interprete o texto como fórmula (injeção de CSV)."""
+    texto = str(texto)
+    return f"'{texto}" if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
+
+
+def gerar_csv_financeiro(pagamentos):
+    """CSV do financeiro no padrão do Excel em português: ';', vírgula decimal e UTF-8 com BOM."""
+    saida = io.StringIO()
+    saida.write("\ufeff")
+    escritor = csv.writer(saida, delimiter=";", lineterminator="\r\n")
+    escritor.writerow(CABECALHO_CSV_FINANCEIRO)
+    for p in pagamentos:
+        sessao = p.sessao
+        escritor.writerow([
+            f"{timezone.localtime(sessao.inicio):%d/%m/%Y %H:%M}",
+            _celula_segura(sessao.paciente.nome),
+            sessao.get_status_display(),
+            f"{p.valor:.2f}".replace(".", ","),
+            p.get_status_display(),
+            f"{p.data_pagamento:%d/%m/%Y}" if p.data_pagamento else "",
+            p.get_forma_pagamento_display(),
+        ])
+    return saida.getvalue()
 
 
 def horarios_livres(usuario, dia, duracao=50, inicio_expediente=8, fim_expediente=20):

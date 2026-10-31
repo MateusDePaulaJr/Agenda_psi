@@ -25,7 +25,10 @@
       <a href="{% url 'financeiro' %}" class="{% if atual == 'financeiro' or 'pagamento' in atual %}ativo{% endif %}" {% if atual == 'financeiro' %}aria-current="page"{% endif %}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="3"/><circle cx="12" cy="12.5" r="2.5"/><path d="M6 10v5M18 10v5"/></svg>Financeiro</a>
     </nav>
-    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn pa-btn-ghost">Sair</button></form>
+    <div class="d-flex gap-2 align-items-center">
+      <a class="btn pa-btn-ghost{% if atual == 'perfil' %} ativo{% endif %}" href="{% url 'perfil' %}" {% if atual == 'perfil' %}aria-current="page"{% endif %}>Meu perfil</a>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn pa-btn-ghost">Sair</button></form>
+    </div>
   </div>
 </header>
 {% endwith %}

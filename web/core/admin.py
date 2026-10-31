@@ -1,11 +1,11 @@
 from django.contrib import admin
 
 from .forms import AdminLoginForm
-from .models import Paciente, Pagamento, Prontuario, Sessao, TentativaLogin
+from .models import Paciente, Pagamento, PerfilProfissional, Prontuario, Sessao, TentativaLogin
 
 # O login do /admin/ também passa pelo bloqueio após 5 falhas (RNF01).
 admin.site.login_form = AdminLoginForm
-admin.site.register([Paciente, Sessao, Pagamento])
+admin.site.register([Paciente, Sessao, Pagamento, PerfilProfissional])
 
 
 @admin.register(Prontuario)

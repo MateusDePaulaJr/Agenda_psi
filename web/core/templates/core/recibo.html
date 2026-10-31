@@ -1,0 +1,40 @@
+{% extends "core/base.html" %}
+{% load psiagenda %}
+{% block title %}Recibo {{ numero }} – PsiAgenda{% endblock %}
+{% block content %}
+<div class="pa-no-print d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <a class="text-decoration-none" href="{% url 'sessao_detalhe' sessao.pk %}">← Voltar para a sessão</a>
+  <div class="d-flex gap-2">
+    <a class="btn pa-btn-ghost" href="{% url 'perfil' %}">Editar dados do recibo</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()">🖨 Imprimir / Salvar PDF</button>
+  </div>
+</div>
+<article class="pa-card pa-recibo" aria-labelledby="titulo-recibo"><div class="pa-card-body">
+  <header class="pa-recibo-topo">
+    <div>
+      <p class="pa-recibo-nome">{{ profissional }}</p>
+      {% if perfil.crp %}<p>Psicóloga · CRP {{ perfil.crp }}</p>{% endif %}
+      {% if perfil.documento %}<p>CPF/CNPJ: {{ perfil.documento }}</p>{% endif %}
+    </div>
+    <div class="text-end">
+      <h1 class="pa-page-title" id="titulo-recibo">Recibo</h1>
+      <p>Nº {{ numero }}</p>
+      <p class="pa-recibo-valor">{{ pagamento.valor|moeda }}</p>
+    </div>
+  </header>
+  <p class="pa-recibo-texto">
+    Recebi de <strong>{{ sessao.paciente.nome }}</strong> a importância de <strong>{{ pagamento.valor|moeda }}</strong>,
+    referente a atendimento psicológico realizado em {{ sessao.inicio|date:"d/m/Y" }},
+    das {{ sessao.inicio|time:"H:i" }} às {{ sessao.fim|time:"H:i" }} ({{ sessao.duracao_minutos }} minutos).
+  </p>
+  <dl class="pa-recibo-dados">
+    <dt>Data do pagamento</dt><dd>{{ pagamento.data_pagamento|date:"d/m/Y"|default:"—" }}</dd>
+    {% if pagamento.forma_pagamento %}<dt>Forma de pagamento</dt><dd>{{ pagamento.get_forma_pagamento_display }}</dd>{% endif %}
+  </dl>
+  <p class="pa-recibo-local">{% if perfil.cidade %}{{ perfil.cidade }}, {% endif %}{{ pagamento.data_pagamento|default:emitido_em|date:"j \d\e F \d\e Y"|lower }}.</p>
+  <div class="pa-recibo-assinatura">
+    <span>{{ profissional }}</span>
+    {% if perfil.crp %}<small>CRP {{ perfil.crp }}</small>{% endif %}
+  </div>
+</div></article>
+{% endblock %}
