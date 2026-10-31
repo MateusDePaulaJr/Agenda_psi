@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+{% block title %}Financeiro – PsiAgenda{% endblock %}
+{% block content %}
+<h1 class="h4">Resumo financeiro</h1>
+<form class="d-flex gap-2 my-3" method="get">
+  <label class="form-label fw-bold my-auto" for="mes">Mês</label>
+  <input class="form-control" type="month" id="mes" name="mes" value="{{ ano }}-{{ mes|stringformat:'02d' }}">
+  <button class="btn btn-outline-primary">Ver</button>
+</form>
+<div class="row g-2 mb-3">
+  <div class="col-6"><div class="card card-body border-success"><span>✔ Recebido</span><strong class="fs-5">R$ {{ recebido|floatformat:2 }}</strong></div></div>
+  <div class="col-6"><div class="card card-body border-warning"><span>⏱ A receber</span><strong class="fs-5">R$ {{ a_receber|floatformat:2 }}</strong></div></div>
+</div>
+<h2 class="h6">Pacientes com pagamento em aberto</h2>
+<ul class="list-group mb-3">
+  {% for p in em_aberto %}<li class="list-group-item d-flex justify-content-between"><span>👤 {{ p.sessao__paciente__nome }}</span><strong>R$ {{ p.total|floatformat:2 }}</strong></li>
+  {% empty %}<li class="list-group-item">Nenhum pagamento em aberto neste mês.</li>{% endfor %}
+</ul>
+<h2 class="h6">Sessões a receber</h2>
+<ul class="list-group">
+  {% for p in pendentes %}<li class="list-group-item"><a href="{% url 'sessao_detalhe' p.sessao.pk %}">{{ p.sessao.inicio|date:"d/m H:i" }} · {{ p.sessao.paciente.nome }} · R$ {{ p.valor }}</a></li>
+  {% empty %}<li class="list-group-item">—</li>{% endfor %}
+</ul>
+{% endblock %}

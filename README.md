@@ -1,4 +1,57 @@
-# Agenda para Psicólogos (CLI + Web com Flask)
+# PsiAgenda – Agenda para Psicólogos
+
+![CI](https://github.com/MateusDePaulaJr/Agenda_psi/actions/workflows/ci.yml/badge.svg)
+
+Projeto da disciplina **Projeto de Software**: sistema web para uma psicóloga autônoma que atende online organizar **agenda, pacientes, pagamentos e prontuários**, impedindo que dois pacientes sejam marcados no mesmo horário.
+
+> A versão web principal está na pasta `web/` (Python 3.12 + Django 5.2). A versão CLI original continua em `src/`.
+
+## Funcionalidades (MVP)
+
+| Requisito | Descrição |
+|---|---|
+| RF01 | Login com senha protegida por hash **Argon2id** |
+| RF02 | Cadastro de pacientes com valor da sessão |
+| RF03 | Agenda semanal com o nome do paciente em cada horário |
+| RF04 | **Bloqueio de horários sobrepostos** com alerta e sugestão de horários livres |
+| RF05 | Pagamento "a receber" gerado automaticamente; marcar como pago |
+| RF06 | Prontuário por sessão e histórico do paciente |
+| RF07 | Resumo financeiro mensal |
+
+## Como executar (Windows / PowerShell)
+
+```powershell
+cd web
+py -m venv venv
+venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+python manage.py migrate
+python manage.py dados_demo --senha "UmaSenhaForte#2026"   # dados FICTÍCIOS
+python manage.py runserver
+```
+
+Acesse http://127.0.0.1:8000 e entre com o usuário `demo`.
+
+## Testes e cobertura
+
+```powershell
+cd web
+pytest --cov=core --cov-report=term-missing
+```
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda os testes em todo Pull Request e em todo push na `main`, e falha se a cobertura ficar abaixo de 80%.
+
+## Fluxo de trabalho com Git
+
+- Cada funcionalidade é desenvolvida em uma branch (`feat/...`, `fix/...`, `docs/...`).
+- Commits seguem o padrão *Conventional Commits* (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- A integração na `main` acontece por **Pull Request**, com revisão e CI aprovado.
+
+---
+
+## Versão CLI original (src/)
+
+### Agenda para Psicólogos (CLI)
 
 Projeto didático (nível iniciante) em **Python** que permite:
 - Cadastro e login de psicólogos
