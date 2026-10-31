@@ -1,0 +1,18 @@
+{% extends "core/base.html" %}
+{% block title %}Pacientes – PsiAgenda{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 m-0">Pacientes</h1>
+  <a class="btn btn-primary" href="{% url 'paciente_novo' %}">＋ Novo paciente</a>
+</div>
+<ul class="list-group">
+{% for p in pacientes %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    <span><strong>{{ p.nome }}</strong><br><small>{{ p.telefone }} · R$ {{ p.valor_sessao }}</small></span>
+    <a class="btn btn-outline-primary" href="{% url 'paciente_editar' p.pk %}">Editar</a>
+  </li>
+{% empty %}
+  <li class="list-group-item">Nenhum paciente cadastrado ainda.</li>
+{% endfor %}
+</ul>
+{% endblock %}
