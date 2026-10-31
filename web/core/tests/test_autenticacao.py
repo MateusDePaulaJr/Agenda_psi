@@ -2,7 +2,6 @@ import pytest  # noqa: F401
 from django.urls import reverse
 
 
-
 def test_agenda_exige_login(client):
     resp = client.get(reverse("agenda"))
     assert resp.status_code == 302
