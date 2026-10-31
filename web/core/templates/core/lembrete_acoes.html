@@ -1,0 +1,16 @@
+{% comment %}Ações de lembrete de uma sessão: link do WhatsApp (ou aviso de telefone inválido) e "marcar como enviado".{% endcomment %}
+<div class="pa-lembrete-acoes">
+  {% if item.url %}
+  <a class="btn pa-btn-whatsapp" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">💬 Lembrar pelo WhatsApp</a>
+  {% else %}
+  <button type="button" class="btn pa-btn-whatsapp" disabled aria-describedby="telefone-invalido-{{ item.sessao.pk }}">💬 Lembrar pelo WhatsApp</button>
+  {% endif %}
+  <form method="post" action="{% url 'sessao_lembrete_enviado' item.sessao.pk %}">{% csrf_token %}
+    {% if proximo %}<input type="hidden" name="proximo" value="{{ proximo }}">{% endif %}
+    <button class="btn pa-btn-ghost">✔ Marcar lembrete como enviado</button>
+  </form>
+</div>
+{% if not item.url %}
+<p class="pa-lembrete-aviso" id="telefone-invalido-{{ item.sessao.pk }}">⚠ Telefone do paciente em formato inválido para WhatsApp. <a href="{% url 'paciente_editar' item.sessao.paciente.pk %}">Corrigir o telefone</a></p>
+{% endif %}
+{% if item.sessao.lembrete_enviado_em %}<p class="pa-lembrete-enviado"><span class="pa-badge pa-badge-pago">✔ Lembrete enviado em {{ item.sessao.lembrete_enviado_em|date:"d/m H:i" }}</span></p>{% endif %}

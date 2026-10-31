@@ -146,3 +146,17 @@ a { color: var(--pa-primary); }
   .pa-badge { padding: 0; background: none !important; color: #000 !important; }
   a { color: #000; text-decoration: none; }
 }
+
+/* Lembretes pelo WhatsApp */
+.pa-btn-whatsapp { background: var(--pa-success); border: 0; color: #fff; font-weight: 600; }
+.pa-btn-whatsapp:hover, .pa-btn-whatsapp:focus-visible { background: #166534; color: #fff; }
+.pa-btn-whatsapp:disabled { background: #e5e7eb; color: var(--pa-muted); opacity: 1; }
+.pa-lembrete-titulo { font-size: 1rem; font-weight: 700; margin: 0 0 .6rem; }
+.pa-lembrete-acoes { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.pa-lembrete-aviso { color: var(--pa-warning); font-size: .9rem; margin: .5rem 0 0; }
+.pa-lembrete-enviado { margin: .5rem 0 0; }
+.pa-lembretes-amanha summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: .5rem; padding: .6rem 1.1rem; font-weight: 700; }
+.pa-lembretes-amanha[open] summary { border-bottom: 1px solid var(--pa-border); }
+.pa-lembretes-amanha .pa-list li { align-items: flex-start; }
+.pa-marcadores { background: var(--pa-primary-soft); border-radius: 12px; padding: .75rem 1rem; font-size: .9rem; }
+.pa-marcadores ul { margin: 0 0 .4rem; padding-left: 1.2rem; }

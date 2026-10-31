@@ -165,6 +165,15 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - **Meu perfil** (no topo da tela): nome no recibo, CRP, CPF/CNPJ e cidade, todos opcionais; o que ficar em branco não aparece no recibo.
 - **Financeiro:** *Exportar CSV* baixa `financeiro-AAAA-MM.csv` do mês escolhido (separador `;`, vírgula decimal, UTF-8 com BOM, abre direto no Excel em português), com as mesmas sessões do resumo (canceladas ficam de fora). *Imprimir* gera o resumo do mês sem menu nem botões.
 
+## Lembretes pelo WhatsApp
+
+- No detalhe de uma sessão **agendada e futura**, o botão *Lembrar pelo WhatsApp* abre (em nova aba) um link `https://wa.me/55DDDNÚMERO?text=...` com a mensagem pronta. **Nada é enviado automaticamente** e não há API paga: o WhatsApp abre com o texto e é a psicóloga quem aperta enviar.
+- O telefone do paciente é texto livre; o sistema pega só os dígitos: 10 ou 11 dígitos (DDD + número) ganham o `55` na frente, 12 ou 13 dígitos começando com `55` são usados como estão. Fora disso, o botão aparece desativado com o aviso "Telefone do paciente em formato inválido para WhatsApp" e um link para corrigir o cadastro.
+- **Mensagem:** a padrão é "Olá, {primeiro_nome}! Passando para lembrar da sua sessão de {dia_semana}, {data} às {hora}. Até lá! – {profissional}". Em **Meu perfil** dá para escrever outra usando os marcadores `{paciente}`, `{primeiro_nome}`, `{data}`, `{hora}`, `{dia_semana}` e `{profissional}`; marcadores desconhecidos aparecem no texto como foram escritos. Campo em branco volta para a padrão.
+- **Lembretes de amanhã:** na agenda, a seção recolhível lista as sessões agendadas de amanhã, cada uma com o seu link, para lembrar todos em sequência.
+- **Marcar lembrete como enviado:** como o link não tem como confirmar o envio, o botão ao lado registra à mão "Lembrete enviado em dd/mm hh:mm" na sessão.
+- **Privacidade:** a mensagem só tem nomes, data e horário, nunca dados clínicos (não escreva informações clínicas na mensagem personalizada). Ao enviar, o texto e o número do paciente passam pelo WhatsApp (Meta), sujeitos aos termos e à política de privacidade dele.
+
 ## Segurança e backup
 
 - **Bloqueio de login:** após 5 tentativas erradas seguidas para o mesmo usuário, o login (inclusive o do `/admin/`) fica bloqueado por 15 minutos, mesmo com a senha certa. O contador fica no banco (tabela `core_tentativalogin`) e zera no primeiro login bem-sucedido. Para liberar antes, apague o registro do usuário em *Admin → Tentativas de login*.
