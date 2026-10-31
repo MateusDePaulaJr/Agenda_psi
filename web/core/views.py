@@ -9,8 +9,8 @@ from decimal import Decimal
 
 from django.db.models import Sum
 
-from .forms import PacienteForm, PagamentoForm, SessaoForm
-from .models import Paciente, Pagamento, Sessao
+from .forms import PacienteForm, PagamentoForm, ProntuarioForm, SessaoForm
+from .models import Paciente, Pagamento, Prontuario, Sessao
 from .services import HorarioOcupado, agendar_sessao, horarios_livres
 
 
@@ -138,3 +138,31 @@ def financeiro(request):
         "ano": ano, "mes": mes, "recebido": recebido, "a_receber": a_receber,
         "em_aberto": em_aberto, "pendentes": pendentes.order_by("sessao__inicio"),
     })
+
+
+@login_required
+def prontuario_registrar(request, pk):
+    """Registra a evolução de uma sessão; marca a sessão como realizada (RF06)."""
+    sessao = get_object_or_404(Sessao, pk=pk, paciente__usuario=request.user)
+    if sessao.status == Sessao.CANCELADA or sessao.inicio > timezone.now():
+        messages.error(request, "O prontuário só pode ser registrado depois do horário da sessão.")
+        return redirect("sessao_detalhe", pk=pk)
+    prontuario = Prontuario.objects.filter(sessao=sessao).first()
+    form = ProntuarioForm(request.POST or None, instance=prontuario)
+    if request.method == "POST" and form.is_valid():
+        registro = form.save(commit=False)
+        registro.sessao = sessao
+        registro.save()
+        if sessao.status != Sessao.REALIZADA:
+            sessao.status = Sessao.REALIZADA
+            sessao.save(update_fields=["status"])
+        messages.success(request, "Prontuário salvo.")
+        return redirect("paciente_historico", pk=sessao.paciente.pk)
+    return render(request, "core/prontuario_form.html", {"form": form, "sessao": sessao})
+
+
+@login_required
+def paciente_historico(request, pk):
+    paciente = get_object_or_404(Paciente, pk=pk, usuario=request.user)
+    registros = Prontuario.objects.filter(sessao__paciente=paciente).select_related("sessao").order_by("-sessao__inicio")
+    return render(request, "core/paciente_historico.html", {"paciente": paciente, "registros": registros})

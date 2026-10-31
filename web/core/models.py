@@ -82,3 +82,15 @@ class Pagamento(models.Model):
 
     def __str__(self):
         return f"{self.sessao} – {self.get_status_display()}"
+
+
+class Prontuario(models.Model):
+    """Registro clínico (evolução) de uma sessão realizada (RF06). Dado sensível."""
+
+    sessao = models.OneToOneField(Sessao, on_delete=models.PROTECT, related_name="prontuario")
+    evolucao = models.TextField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Prontuário de {self.sessao}"

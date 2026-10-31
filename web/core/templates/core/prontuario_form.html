@@ -1,0 +1,12 @@
+{% extends "core/base.html" %}
+{% block title %}Prontuário – PsiAgenda{% endblock %}
+{% block content %}
+<a href="{% url 'sessao_detalhe' sessao.pk %}">← Voltar para a sessão</a>
+<h1 class="h4 my-3">Prontuário</h1>
+<p>{{ sessao.paciente.nome }} · {{ sessao.inicio|date:"d/m/Y H:i" }}</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "core/form_campos.html" %}
+  <button class="btn btn-primary w-100">Salvar prontuário</button>
+</form>
+{% endblock %}
