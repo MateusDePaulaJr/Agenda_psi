@@ -1,0 +1,130 @@
+{% extends "core/base.html" %}
+{% load l10n psiagenda %}
+{% block title %}Painel – PsiAgenda{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+  <div>
+    <h1 class="pa-page-title">{{ saudacao }}, {{ profissional }}</h1>
+    <p class="pa-subtitle"><time datetime="{{ hoje|date:'Y-m-d' }}">{{ hoje|date:"l" }}, {{ hoje|date:"j" }} de {{ hoje|date:"F"|lower }} de {{ hoje|date:"Y" }}</time></p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'sessao_nova' %}">＋ Nova sessão</a>
+</div>
+
+{% if lembretes_amanha %}
+<a class="pa-card pa-painel-atalho mb-3" href="{% url 'agenda' %}?semana={{ amanha|date:'Y-m-d' }}&amp;lembretes=1#lembretes-amanha">
+  <span aria-hidden="true">💬</span>
+  <span class="flex-fill"><strong>Lembretes de amanhã</strong>
+    <small>{{ lembretes_amanha }} sess{{ lembretes_amanha|pluralize:"ão agendada,ões agendadas" }} para lembrar pelo WhatsApp</small></span>
+  <span class="pa-badge pa-badge-serie">{{ lembretes_amanha }}</span>
+  <span aria-hidden="true">›</span>
+</a>
+{% endif %}
+
+<section aria-labelledby="titulo-indicadores" class="mb-3">
+  <h2 class="visually-hidden" id="titulo-indicadores">Indicadores</h2>
+  <div class="pa-painel-kpis">
+    <div class="pa-kpi pa-kpi-neutro"><span>📅 Sessões na semana</span><strong>{{ sessoes_semana }}</strong><small>de segunda a domingo, sem as canceladas</small></div>
+    <div class="pa-kpi pa-kpi-pago"><span>✔ Recebido no mês</span><strong>{{ recebido_mes|moeda }}</strong><small>sessões de {{ hoje|date:"F"|lower }}</small></div>
+    <div class="pa-kpi pa-kpi-receber"><span>⏱ A receber no mês</span><strong>{{ a_receber_mes|moeda }}</strong><small>sessões de {{ hoje|date:"F"|lower }}</small></div>
+    <div class="pa-kpi pa-kpi-neutro"><span>✓ Comparecimento (30 dias)</span>
+      <strong>{% if taxa_comparecimento is None %}—{% else %}{{ taxa_comparecimento }}%{% endif %}</strong>
+      <small>{% if taxa_comparecimento is None %}sem sessões realizadas ou faltas{% else %}{{ realizadas_30_dias }} realizada{{ realizadas_30_dias|pluralize }}, {{ faltas_30_dias }} falta{{ faltas_30_dias|pluralize }}{% endif %}</small></div>
+    <div class="pa-kpi pa-kpi-neutro"><span>👥 Pacientes ativos</span><strong>{{ pacientes_ativos }}</strong><small><a href="{% url 'pacientes' %}">ver pacientes</a></small></div>
+  </div>
+</section>
+
+<div class="row g-3">
+<div class="col-lg-7 d-flex flex-column gap-3">
+  <section class="pa-card" aria-labelledby="titulo-hoje">
+    <h2 class="pa-painel-titulo" id="titulo-hoje">Hoje</h2>
+    <ul class="pa-list pa-painel-lista">
+    {% for item in sessoes_hoje %}{% with s=item.sessao %}
+      <li>
+        <a class="pa-painel-sessao" href="{% url 'sessao_detalhe' s.pk %}">
+          <span class="pa-time">{{ s.inicio|time:"H\hi" }}</span>
+          <span class="pa-avatar" aria-hidden="true">{{ s.paciente.nome|iniciais }}</span>
+          <span class="pa-painel-info">
+            <span class="pa-slot-name">{{ s.paciente.nome }}</span>
+            <span class="pa-painel-selos">
+              {% if s.status == 'realizada' %}<span class="pa-badge pa-badge-pago">✔ Realizada</span>
+              {% elif s.status == 'falta' %}<span class="pa-badge pa-painel-badge-falta">✖ Falta</span>
+              {% else %}<span class="pa-badge pa-badge-serie">● Agendada</span>{% endif %}
+              {% if s.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>
+              {% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}
+            </span>
+          </span>
+        </a>
+        {% if item.lembrete %}<div class="pa-painel-lembrete">{% include "core/lembrete_acoes.html" with item=item.lembrete proximo=request.get_full_path %}</div>{% endif %}
+      </li>
+    {% endwith %}{% empty %}
+      <li class="pa-painel-vazio">Nenhuma sessão hoje</li>
+    {% endfor %}
+    </ul>
+  </section>
+
+  <section class="pa-card" aria-labelledby="titulo-proximas">
+    <h2 class="pa-painel-titulo" id="titulo-proximas">Próximas sessões</h2>
+    <ul class="pa-list pa-painel-lista">
+    {% for s in proximas %}
+      <li><a class="pa-painel-sessao" href="{% url 'sessao_detalhe' s.pk %}">
+        <span class="pa-date-chip"><span>{{ s.inicio|date:"D" }}</span><b>{{ s.inicio|date:"d" }}</b></span>
+        <span class="pa-painel-info">
+          <span class="pa-slot-name">{{ s.paciente.nome }}</span>
+          <small>{{ s.inicio|date:"d/m" }} · {{ s.inicio|time:"H\hi" }}</small>
+        </span>
+        {% if s.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>{% endif %}
+      </a></li>
+    {% empty %}
+      <li class="pa-painel-vazio">Nenhuma sessão agendada</li>
+    {% endfor %}
+    </ul>
+    <p class="pa-painel-rodape"><a href="{% url 'agenda' %}">Ver agenda da semana ›</a></p>
+  </section>
+</div>
+
+<div class="col-lg-5 d-flex flex-column gap-3">
+  <section class="pa-card" aria-labelledby="titulo-grafico">
+    <h2 class="pa-painel-titulo" id="titulo-grafico">Recebido nos últimos 6 meses</h2>
+    <figure class="pa-painel-grafico">
+      {% localize off %}<svg viewBox="0 0 {{ grafico.largura }} {{ grafico.altura }}" aria-hidden="true" focusable="false">
+        <line class="pa-grafico-base" x1="{{ grafico.x_barra }}" y1="0" x2="{{ grafico.x_barra }}" y2="{{ grafico.altura }}"/>
+        {% for m in grafico.meses %}
+        <g>
+          <title>{{ m.inicio|date:"F \d\e Y"|capfirst }}: {{ m.valor|moeda }}</title>
+          <text class="pa-grafico-mes" x="{{ grafico.x_barra|add:'-8' }}" y="{{ m.y_texto }}" text-anchor="end">{{ m.rotulo }}</text>
+          {% if m.largura %}<rect class="pa-grafico-barra" x="{{ grafico.x_barra }}" y="{{ m.y }}" width="{{ m.largura }}" height="20" rx="4"/>{% endif %}
+          <text class="pa-grafico-valor" x="{{ grafico.x_valor }}" y="{{ m.y_texto }}" text-anchor="end">{{ m.valor|moeda }}</text>
+        </g>
+        {% endfor %}
+      </svg>{% endlocalize %}
+      <figcaption class="pa-painel-legenda">Pagamentos registrados como pagos, pelo mês da sessão.</figcaption>
+      <div class="visually-hidden"><table>
+        <caption>Valor recebido por mês nos últimos 6 meses</caption>
+        <thead><tr><th scope="col">Mês</th><th scope="col">Recebido</th></tr></thead>
+        <tbody>
+        {% for m in grafico.meses %}<tr><th scope="row">{{ m.inicio|date:"F \d\e Y"|capfirst }}</th><td>{{ m.valor|moeda }}</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </figure>
+  </section>
+
+  <section class="pa-card" aria-labelledby="titulo-pendentes">
+    <h2 class="pa-painel-titulo" id="titulo-pendentes">Pagamentos pendentes{% if total_pendentes %} <span class="pa-badge pa-badge-receber">{{ total_pendentes }}</span>{% endif %}</h2>
+    <ul class="pa-list pa-painel-lista">
+    {% for p in pendentes %}
+      <li class="pa-painel-pendente">
+        <a class="pa-painel-info" href="{% url 'sessao_detalhe' p.sessao.pk %}">
+          <span class="pa-slot-name">{{ p.sessao.paciente.nome }}</span>
+          <small>Sessão de {{ p.sessao.inicio|date:"d/m/Y" }} · <span class="pa-painel-valor">{{ p.valor|moeda }}</span></small>
+        </a>
+        <a class="btn pa-btn-ghost" href="{% url 'pagamento_registrar' p.sessao.pk %}">✔ Registrar pagamento<span class="visually-hidden"> de {{ p.sessao.paciente.nome }}</span></a>
+      </li>
+    {% empty %}
+      <li class="pa-painel-vazio">Nenhum pagamento pendente de sessões realizadas</li>
+    {% endfor %}
+    </ul>
+    <p class="pa-painel-rodape"><a href="{% url 'financeiro' %}">Ver financeiro ›</a></p>
+  </section>
+</div>
+</div>
+{% endblock %}

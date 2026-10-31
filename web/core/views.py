@@ -4,7 +4,7 @@ import time
 
 from django.contrib import messages
 from django.db import connection
-from django.http import HttpResponse, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -27,8 +27,11 @@ from .services import (
     agendar_serie,
     agendar_sessao,
     cancelar_serie_a_partir_de,
+    cartao_publico,
+    dados_painel,
     gerar_csv_financeiro,
     horarios_livres,
+    iniciais_profissional,
     lembrete_whatsapp,
     nome_profissional,
     numero_recibo,
@@ -42,6 +45,12 @@ def _inicio_semana(texto):
     except ValueError:
         base = timezone.localdate()
     return base - timedelta(days=base.weekday())
+
+
+@login_required
+def painel(request):
+    """Tela inicial: resumo do dia, indicadores e pendências da psicóloga."""
+    return render(request, "core/painel.html", dados_painel(request.user, timezone.now()))
 
 
 @login_required
@@ -278,7 +287,8 @@ def recibo(request, pk):
 
 @login_required
 def perfil(request):
-    """Meu perfil: dados opcionais do recibo (nome, CRP, CPF/CNPJ, cidade) e a mensagem de lembrete."""
+    """Meu perfil: identificação, apresentação, padrões de atendimento, contatos, página pública,
+    dados do recibo e a mensagem de lembrete. Tudo opcional."""
     atual = PerfilProfissional.objects.filter(usuario=request.user).first()
     form = PerfilProfissionalForm(request.POST or None, instance=atual)
     if request.method == "POST" and form.is_valid():
@@ -287,9 +297,39 @@ def perfil(request):
         novo.save()
         messages.success(request, "Perfil salvo.")
         return redirect("perfil")
+    # O avatar e o link mostram o que está salvo (não o que foi digitado num envio com erro).
+    salvo = PerfilProfissional.objects.filter(usuario=request.user).first()
+    nome = nome_profissional(request.user, salvo)
+    link_publico = None
+    if salvo and salvo.slug:
+        link_publico = request.build_absolute_uri(reverse("perfil_publico", args=[salvo.slug]))
     return render(request, "core/perfil.html", {
         "form": form, "marcadores": MARCADORES_LEMBRETE, "mensagem_padrao": MENSAGEM_LEMBRETE_PADRAO,
+        "perfil": salvo, "nome": nome, "iniciais": iniciais_profissional(nome),
+        "cor": salvo.cor_avatar if salvo else "indigo", "link_publico": link_publico,
     })
+
+
+def perfil_publico(request, slug):
+    """Cartão de apresentação público (/p/<slug>/), sem login.
+
+    Só existe com a página ativada; desativada, responde 404 para todos, exceto
+    para a própria psicóloga logada, que vê uma pré-visualização marcada como
+    noindex. O template recebe apenas o dicionário de cartao_publico (allowlist).
+    """
+    perfil = get_object_or_404(PerfilProfissional.objects.select_related("usuario"), slug=slug)
+    dona = request.user.is_authenticated and request.user.pk == perfil.usuario_id
+    if not dona and not (perfil.perfil_publico and perfil.usuario.is_active):
+        raise Http404
+    cartao = cartao_publico(perfil)
+    resposta = render(request, "core/perfil_publico.html", {
+        "cartao": cartao,
+        "previa": not perfil.perfil_publico,
+        "url_canonica": request.build_absolute_uri(reverse("perfil_publico", args=[perfil.slug])),
+    })
+    if not perfil.perfil_publico:
+        resposta["X-Robots-Tag"] = "noindex, nofollow"
+    return resposta
 
 
 @login_required

@@ -121,7 +121,7 @@ LOGGING = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "agenda"
+LOGIN_REDIRECT_URL = "painel"
 LOGOUT_REDIRECT_URL = "login"
 
 # Sessão expira após 30 minutos sem uso e ao fechar o navegador (RNF01).

@@ -1,0 +1,76 @@
+{% load static psiagenda %}<!doctype html>
+{# Página pública: recebe só o dicionário "cartao" (allowlist de services.cartao_publico). #}
+{% with titulo=cartao.nome|add:" – Psicóloga" %}
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4f46e5">
+  <title>{{ titulo }}{% if cartao.crp %} · CRP {{ cartao.crp }}{% endif %}</title>
+  <meta name="description" content="{{ cartao.descricao }}">
+  {% if previa %}<meta name="robots" content="noindex, nofollow">{% endif %}
+  <link rel="canonical" href="{{ url_canonica }}">
+  <meta property="og:type" content="profile">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:title" content="{{ titulo }}{% if cartao.crp %} · CRP {{ cartao.crp }}{% endif %}">
+  <meta property="og:description" content="{{ cartao.descricao }}">
+  <meta property="og:url" content="{{ url_canonica }}">
+  <meta name="twitter:card" content="summary">
+  <link href="{% static 'core/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'core/psiagenda.css' %}" rel="stylesheet">
+</head>
+<body class="pa-publico-body">
+{% if previa %}
+<div class="pa-previa" role="status">
+  <strong>Pré-visualização.</strong> Sua página está desativada: só você consegue vê-la.
+  <a href="{% url 'perfil' %}#secao-pagina">Ativar no Meu perfil</a>
+</div>
+{% endif %}
+<main class="pa-publico">
+  <article class="pa-card pa-cartao" aria-labelledby="cartao-nome">
+    <div class="pa-cartao-faixa pa-cor-{{ cartao.cor }}" aria-hidden="true"></div>
+    <div class="pa-cartao-corpo">
+      <header class="pa-cartao-topo">
+        {% avatar_perfil cartao.iniciais cartao.cor cartao.nome "g" %}
+        <h1 class="pa-cartao-nome" id="cartao-nome">{{ cartao.nome }}</h1>
+        <p class="pa-cartao-titulo">Psicóloga{% if cartao.crp %} · CRP {{ cartao.crp }}{% endif %}</p>
+        {% if cartao.abordagem %}<p class="pa-cartao-abordagem">{{ cartao.abordagem }}</p>{% endif %}
+      </header>
+
+      {% if cartao.especialidades %}
+      <ul class="pa-chips pa-chips-centro" aria-label="Especialidades e temas">
+        {% for tema in cartao.especialidades %}<li>{{ tema }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if cartao.whatsapp_url or cartao.email or cartao.instagram or cartao.site %}
+      <div class="pa-cartao-contatos" aria-label="Contato">
+        {% if cartao.whatsapp_url %}<a class="btn pa-btn-whatsapp" href="{{ cartao.whatsapp_url }}" target="_blank" rel="noopener">Conversar pelo WhatsApp</a>{% endif %}
+        {% if cartao.email %}<a class="btn btn-outline-primary" href="mailto:{{ cartao.email }}">Enviar e-mail</a>{% endif %}
+        {% if cartao.instagram %}<a class="btn pa-btn-ghost" href="{{ cartao.instagram }}" target="_blank" rel="noopener me">Instagram <span class="pa-cartao-link-detalhe">@{{ cartao.instagram_usuario }}</span></a>{% endif %}
+        {% if cartao.site %}<a class="btn pa-btn-ghost" href="{{ cartao.site }}" target="_blank" rel="noopener me">Site <span class="pa-cartao-link-detalhe">{{ cartao.site_rotulo }}</span></a>{% endif %}
+      </div>
+      {% endif %}
+
+      {% if cartao.bio %}
+      <section class="pa-cartao-secao" aria-labelledby="titulo-sobre">
+        <h2 id="titulo-sobre">Sobre</h2>
+        <p>{{ cartao.bio|linebreaksbr }}</p>
+      </section>
+      {% endif %}
+
+      {% if cartao.modalidade or cartao.publico or cartao.idiomas or cartao.cidade %}
+      <dl class="pa-cartao-info">
+        {% if cartao.modalidade %}<div><dt>Atendimento</dt><dd>{{ cartao.modalidade }}</dd></div>{% endif %}
+        {% if cartao.publico %}<div><dt>Público</dt><dd>{{ cartao.publico|join:", " }}</dd></div>{% endif %}
+        {% if cartao.idiomas %}<div><dt>Idiomas</dt><dd>{{ cartao.idiomas }}</dd></div>{% endif %}
+        {% if cartao.cidade %}<div><dt>Cidade</dt><dd>{{ cartao.cidade }}</dd></div>{% endif %}
+      </dl>
+      {% endif %}
+    </div>
+  </article>
+  <p class="pa-publico-rodape">Em sofrimento intenso ou risco à vida, ligue <strong>188</strong> (CVV, 24 horas) ou <strong>192</strong> (SAMU).</p>
+</main>
+</body>
+</html>
+{% endwith %}

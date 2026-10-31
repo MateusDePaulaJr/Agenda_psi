@@ -8,10 +8,10 @@ def test_agenda_exige_login(client):
     assert reverse("login") in resp["Location"]
 
 
-def test_login_valido_abre_agenda(client, usuaria):
+def test_login_valido_abre_painel(client, usuaria):
     resp = client.post(reverse("login"), {"username": "ana", "password": "SenhaForte#2026"})
     assert resp.status_code == 302
-    assert resp["Location"] == reverse("agenda")
+    assert resp["Location"] == reverse("painel")
 
 
 def test_login_invalido_mostra_mensagem_generica(client, usuaria):

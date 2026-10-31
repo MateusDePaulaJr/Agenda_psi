@@ -12,7 +12,7 @@
   <a class="pa-icon-btn" href="?semana={{ proxima|date:'Y-m-d' }}" aria-label="Próxima semana">›</a>
 </div>
 {% if lembretes_amanha %}
-<details class="pa-card pa-lembretes-amanha mb-3">
+<details class="pa-card pa-lembretes-amanha mb-3" id="lembretes-amanha"{% if request.GET.lembretes %} open{% endif %}>
   <summary>💬 Lembretes de amanhã <span class="pa-badge pa-badge-serie">{{ lembretes_amanha|length }} sess{{ lembretes_amanha|length|pluralize:"ão,ões" }}</span></summary>
   <ul class="pa-list">
   {% for item in lembretes_amanha %}

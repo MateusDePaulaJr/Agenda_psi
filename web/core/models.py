@@ -1,6 +1,7 @@
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, URLValidator
 from django.db import models
+from django.utils.text import slugify
 
 
 class Paciente(models.Model):
@@ -130,16 +131,82 @@ class TentativaLogin(models.Model):
         return f"{self.username} ({self.falhas} falhas)"
 
 
+# Cores do avatar com iniciais: todas com contraste AA (≥ 4,5:1) para texto branco.
+CORES_AVATAR = [
+    ("indigo", "Índigo"),
+    ("violeta", "Violeta"),
+    ("azul", "Azul"),
+    ("petroleo", "Azul-petróleo"),
+    ("verde", "Verde"),
+    ("rosa", "Rosa"),
+    ("terracota", "Terracota"),
+    ("grafite", "Grafite"),
+]
+
+PUBLICOS = [
+    ("criancas", "Crianças"),
+    ("adolescentes", "Adolescentes"),
+    ("adultos", "Adultos"),
+    ("idosos", "Idosos"),
+    ("casais", "Casais"),
+    ("familias", "Famílias"),
+]
+
+DURACAO_MINIMA, DURACAO_MAXIMA = 10, 240
+TAMANHO_SLUG = 60
+_url_web = URLValidator(schemes=["http", "https"])
+
+
 class PerfilProfissional(models.Model):
-    """Dados da psicóloga exibidos no recibo e no lembrete. Todos opcionais: o que estiver vazio não aparece."""
+    """Dados da psicóloga: recibo, lembrete, padrões de atendimento e a página pública opcional.
+
+    Todos os campos são opcionais: o que estiver vazio não aparece. A página
+    pública (/p/<slug>/) só existe com `perfil_publico` ligado e mostra apenas os
+    campos de apresentação e contato (nunca CPF/CNPJ, pacientes ou agenda).
+    """
 
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="perfil_profissional")
-    nome_exibicao = models.CharField("nome no recibo", max_length=120, blank=True)
+    nome_exibicao = models.CharField("nome profissional", max_length=120, blank=True)
     crp = models.CharField("CRP", max_length=20, blank=True)
     documento = models.CharField("CPF ou CNPJ", max_length=20, blank=True)
     cidade = models.CharField("cidade", max_length=80, blank=True)
     # Texto do lembrete pelo WhatsApp; vazio usa a mensagem padrão.
     mensagem_lembrete = models.TextField("mensagem de lembrete", max_length=1000, blank=True)
+
+    # Identificação: avatar gerado com as iniciais (o Render gratuito não guarda arquivos enviados).
+    cor_avatar = models.CharField("cor do avatar", max_length=10, choices=CORES_AVATAR, default="indigo")
+
+    # Apresentação
+    bio = models.TextField("mini bio", max_length=600, blank=True)
+    abordagem = models.CharField("abordagem teórica", max_length=120, blank=True)
+    especialidades = models.CharField("especialidades e temas", max_length=400, blank=True)
+    publico = models.CharField("público atendido", max_length=100, blank=True)  # códigos de PUBLICOS separados por vírgula
+    idiomas = models.CharField("idiomas", max_length=120, blank=True)
+
+    # Atendimento (padrões usados ao cadastrar paciente e agendar sessão)
+    modalidade = models.CharField("modalidade", max_length=80, blank=True, default="Online")
+    duracao_padrao = models.PositiveSmallIntegerField(
+        "duração padrão da sessão (minutos)",
+        default=50,
+        validators=[MinValueValidator(DURACAO_MINIMA), MaxValueValidator(DURACAO_MAXIMA)],
+    )
+    valor_padrao = models.DecimalField(
+        "valor padrão da sessão", max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0.01)],
+    )
+
+    # Contato público
+    whatsapp = models.CharField("WhatsApp profissional", max_length=20, blank=True)
+    email_publico = models.EmailField("e-mail profissional", blank=True)
+    instagram = models.URLField("Instagram", blank=True, validators=[_url_web])
+    site = models.URLField("site", blank=True, validators=[_url_web])
+
+    # Página pública (opt-in)
+    perfil_publico = models.BooleanField("página pública ativa", default=False)
+    # Nulo (e não vazio) para que perfis antigos sem endereço não colidam na restrição de unicidade.
+    slug = models.SlugField("endereço da página pública", max_length=TAMANHO_SLUG, unique=True, null=True, blank=True)
+    mostrar_cidade = models.BooleanField("mostrar a cidade na página pública", default=False)
+
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -148,3 +215,31 @@ class PerfilProfissional(models.Model):
 
     def __str__(self):
         return f"Perfil de {self.usuario}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = self.slug_disponivel(self.nome_para_slug())
+        super().save(*args, **kwargs)
+
+    def nome_para_slug(self):
+        return self.nome_exibicao or self.usuario.get_full_name() or self.usuario.username
+
+    def slug_disponivel(self, texto):
+        """slugify(texto) livre entre os perfis; se já existir, acrescenta -2, -3..."""
+        base = slugify(texto)[: TAMANHO_SLUG - 4].strip("-") or "psicologa"
+        ocupados = set(
+            PerfilProfissional.objects.filter(slug__startswith=base).exclude(pk=self.pk).values_list("slug", flat=True)
+        )
+        candidato, n = base, 2
+        while candidato in ocupados:
+            candidato, n = f"{base}-{n}", n + 1
+        return candidato
+
+    @property
+    def lista_especialidades(self):
+        return [t.strip() for t in self.especialidades.split(",") if t.strip()]
+
+    @property
+    def lista_publico(self):
+        codigos = set(self.publico.split(","))
+        return [rotulo for codigo, rotulo in PUBLICOS if codigo in codigos]
