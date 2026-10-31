@@ -40,6 +40,9 @@ class Sessao(models.Model):
     duracao_minutos = models.PositiveSmallIntegerField(default=50, validators=[MinValueValidator(10)])
     status = models.CharField(max_length=10, choices=STATUS, default=AGENDADA)
     observacao = models.CharField(max_length=200, blank=True)
+    # Identifica as sessões criadas juntas como recorrentes (semanal/quinzenal).
+    # Vazio para sessões avulsas.
+    serie = models.UUIDField(null=True, blank=True, editable=False, db_index=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -62,6 +65,13 @@ class Sessao(models.Model):
             inicio__gt=self.inicio - timedelta(hours=12),
         ).exclude(pk=self.pk)
         return [s for s in candidatas if s.fim > self.inicio]
+
+    def posicao_na_serie(self):
+        """Devolve (X, N) para exibir "Sessão X de N da série", ou None se for avulsa."""
+        if not self.serie:
+            return None
+        datas = list(Sessao.objects.filter(serie=self.serie).order_by("inicio", "pk").values_list("pk", flat=True))
+        return datas.index(self.pk) + 1, len(datas)
 
     def __str__(self):
         return f"{self.paciente} – {self.inicio:%d/%m/%Y %H:%M}"

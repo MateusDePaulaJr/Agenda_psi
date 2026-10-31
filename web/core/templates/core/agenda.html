@@ -23,7 +23,7 @@
     <a class="pa-slot {% if destaque == s.pk|stringformat:'s' %}destaque{% endif %}" href="{% url 'sessao_detalhe' s.pk %}">
       <span class="pa-time">{{ s.inicio|time:"H\hi" }}</span>
       <span class="pa-avatar" aria-hidden="true">{{ s.paciente.nome|iniciais }}</span>
-      <span class="pa-slot-name">{{ s.paciente.nome }}</span>
+      <span class="pa-slot-name">{{ s.paciente.nome }}{% if s.serie %} <span class="pa-serie" title="Sessão recorrente" aria-hidden="true">↻</span><span class="visually-hidden">(sessão recorrente)</span>{% endif %}</span>
       {% if s.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>
       {% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}
     </a>

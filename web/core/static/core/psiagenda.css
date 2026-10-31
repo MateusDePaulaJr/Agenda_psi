@@ -77,6 +77,7 @@ a { color: var(--pa-primary); }
 .pa-badge { display: inline-flex; align-items: center; gap: .3rem; border-radius: 999px; padding: .3rem .65rem; font-size: .8rem; font-weight: 700; white-space: nowrap; }
 .pa-badge-pago { background: var(--pa-success-soft); color: var(--pa-success); }
 .pa-badge-receber { background: var(--pa-warning-soft); color: var(--pa-warning); }
+.pa-badge-serie { background: var(--pa-primary-soft); color: var(--pa-primary); }
 
 /* Botões */
 .btn-primary { background: linear-gradient(135deg, #6366f1, #4f46e5); border: 0; font-weight: 600; box-shadow: 0 4px 12px rgba(79, 70, 229, .25); }
@@ -96,6 +97,9 @@ a { color: var(--pa-primary); }
 .alert-danger { background: var(--pa-danger-soft); border-color: #fda29b; color: #7a271a; }
 .alert-success { background: #ecfdf3; border-color: #6ce9a6; color: #054f31; }
 .pa-alert-conflito { border-left: 5px solid var(--pa-danger); }
+.pa-serie { color: var(--pa-primary); font-weight: 700; }
+.pa-conflitos-serie { padding-left: 1.2rem; }
+.pa-conflitos-serie li { margin-bottom: .25rem; }
 
 /* Financeiro */
 .pa-kpi { padding: 1rem 1.1rem; border-radius: var(--pa-radius); }

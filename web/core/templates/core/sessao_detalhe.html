@@ -12,6 +12,9 @@
   </div>
   <dl class="row mb-0">
     <dt class="col-5">Situação</dt><dd class="col-7">{{ sessao.get_status_display }}</dd>
+    {% if posicao_serie %}
+    <dt class="col-5">Recorrência</dt><dd class="col-7"><span class="pa-badge pa-badge-serie">↻ Sessão {{ posicao_serie.0 }} de {{ posicao_serie.1 }} da série</span></dd>
+    {% endif %}
     <dt class="col-5">Valor</dt><dd class="col-7">R$ {{ sessao.pagamento.valor }}</dd>
     <dt class="col-5">Pagamento</dt><dd class="col-7">
       {% if sessao.pagamento.status == 'pago' %}<span class="pa-badge pa-badge-pago">✔ Pago</span>{% else %}<span class="pa-badge pa-badge-receber">⏱ A receber</span>{% endif %}</dd>
@@ -23,6 +26,9 @@
   <a class="btn btn-primary" href="{% url 'sessao_nova' %}">Agendar outra</a>
   {% if sessao.status == 'agendada' %}
   <form method="post" action="{% url 'sessao_cancelar' sessao.pk %}">{% csrf_token %}<button class="btn btn-outline-danger">Cancelar sessão</button></form>
+  {% if sessao.serie %}
+  <form method="post" action="{% url 'sessao_cancelar_serie' sessao.pk %}" onsubmit="return confirm('Cancelar esta sessão e as próximas agendadas da série? Sessões realizadas ou passadas não são alteradas.');">{% csrf_token %}<button class="btn btn-outline-danger">Cancelar esta e as próximas da série</button></form>
+  {% endif %}
   {% endif %}
 </div>
 </div></div>
