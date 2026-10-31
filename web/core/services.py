@@ -1,5 +1,6 @@
 """Regras de negócio do PsiAgenda (camada de regras da arquitetura)."""
 import math
+import uuid
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
@@ -25,10 +26,35 @@ class HorarioOcupado(Exception):
         )
 
 
+class SerieComConflito(HorarioOcupado):
+    """Uma ou mais datas de uma série recorrente já estão ocupadas; nada foi criado.
+
+    `conflitos` é uma lista de pares (início pretendido, sessão que ocupa o horário).
+    """
+
+    def __init__(self, conflitos):
+        self.conflitos = conflitos
+        self.conflito = conflitos[0][1]
+        n = len(conflitos)
+        datas = ", ".join(f"{timezone.localtime(inicio):%d/%m}" for inicio, _ in conflitos)
+        Exception.__init__(
+            self,
+            f"{n} data{'s' if n != 1 else ''} da série já {'estão' if n != 1 else 'está'} "
+            f"ocupada{'s' if n != 1 else ''} ({datas}). Nenhuma sessão foi agendada.",
+        )
+
+
+# Repetições possíveis na tela "Nova sessão": código -> (dias entre as sessões, rótulo).
+REPETICOES = {"semanal": (7, "semanal"), "quinzenal": (14, "quinzenal")}
+MIN_SESSOES_SERIE, MAX_SESSOES_SERIE = 2, 24
+
+
 @transaction.atomic
-def agendar_sessao(paciente, inicio, duracao_minutos=50, observacao=""):
+def agendar_sessao(paciente, inicio, duracao_minutos=50, observacao="", serie=None):
     """Cria a sessão e o pagamento 'a receber' juntos, ou nada (RF03, RF04, RF05)."""
-    sessao = Sessao(paciente=paciente, inicio=inicio, duracao_minutos=duracao_minutos, observacao=observacao)
+    sessao = Sessao(
+        paciente=paciente, inicio=inicio, duracao_minutos=duracao_minutos, observacao=observacao, serie=serie
+    )
     conflitos = sessao.conflitos()
     if conflitos:
         raise HorarioOcupado(conflitos[0])
@@ -45,6 +71,59 @@ def agendar_sessao(paciente, inicio, duracao_minutos=50, observacao=""):
         raise HorarioOcupado(conflitos[0]) from erro
     Pagamento.objects.create(sessao=sessao, valor=paciente.valor_sessao)
     return sessao
+
+
+def datas_da_serie(inicio, intervalo_dias, quantidade):
+    """Inícios das sessões da série, mantendo o mesmo horário de relógio local."""
+    tz = timezone.get_current_timezone()
+    local = timezone.localtime(inicio, tz).replace(tzinfo=None)
+    return [timezone.make_aware(local + timedelta(days=i * intervalo_dias), tz) for i in range(quantidade)]
+
+
+def agendar_serie(paciente, inicio, duracao_minutos, observacao, intervalo_dias, quantidade):
+    """Agenda sessões recorrentes: todas ou nenhuma.
+
+    Primeiro verifica todas as datas com a mesma regra de conflito de uma sessão
+    avulsa; se alguma estiver ocupada, levanta SerieComConflito listando cada uma
+    e nada é criado. Senão cria cada sessão com agendar_sessao (sessão + pagamento
+    'a receber') dentro de uma única transação, todas com o mesmo `serie`.
+    """
+    if not MIN_SESSOES_SERIE <= quantidade <= MAX_SESSOES_SERIE:
+        raise ValueError(f"A série deve ter de {MIN_SESSOES_SERIE} a {MAX_SESSOES_SERIE} sessões.")
+    datas = datas_da_serie(inicio, intervalo_dias, quantidade)
+    conflitos = []
+    for data in datas:
+        ocupadas = Sessao(paciente=paciente, inicio=data, duracao_minutos=duracao_minutos).conflitos()
+        if ocupadas:
+            conflitos.append((data, ocupadas[0]))
+    if conflitos:
+        raise SerieComConflito(conflitos)
+    serie = uuid.uuid4()
+    with transaction.atomic():
+        sessoes = []
+        for data in datas:
+            try:
+                sessoes.append(agendar_sessao(paciente, data, duracao_minutos, observacao, serie=serie))
+            except HorarioOcupado as erro:
+                # Outra requisição ocupou o horário depois da verificação: desfaz tudo.
+                raise SerieComConflito([(data, erro.conflito)]) from erro
+    return sessoes
+
+
+@transaction.atomic
+def cancelar_serie_a_partir_de(sessao):
+    """Cancela esta sessão e as próximas da mesma série que ainda estão agendadas.
+
+    Nunca altera sessões realizadas, com falta, já canceladas ou anteriores a esta
+    (nem as que já passaram). Devolve quantas foram canceladas.
+    """
+    if not sessao.serie or sessao.status != Sessao.AGENDADA:
+        return 0
+    da_serie = Sessao.objects.filter(
+        serie=sessao.serie, paciente__usuario=sessao.paciente.usuario, status=Sessao.AGENDADA
+    )
+    alvo = da_serie.filter(pk=sessao.pk) | da_serie.filter(inicio__gt=sessao.inicio, inicio__gte=timezone.now())
+    return Sessao.objects.filter(pk__in=list(alvo.values_list("pk", flat=True))).update(status=Sessao.CANCELADA)
 
 
 def horarios_livres(usuario, dia, duracao=50, inicio_expediente=8, fim_expediente=20):

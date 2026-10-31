@@ -153,6 +153,12 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - Variáveis secretas definidas no painel: `PSI_USUARIO`, `PSI_SENHA`, `PSI_NOME` (conta da psicóloga, criada no build por `python manage.py criar_usuaria`). `DJANGO_SECRET_KEY` é gerada pelo Render.
 - **Monitoramento:** `GET /saude/` responde `{"status":"ok","banco":"ok","tempo_ms":...}` sem login e sem dados pessoais. É usado pelo health check do Render e por um monitor externo de disponibilidade (UptimeRobot, a cada 5 min). Erros de requisição vão para os logs do Render.
 
+## Sessões recorrentes
+
+- Em **Nova sessão**, o campo *Repetir* permite agendar o mesmo paciente toda semana ou a cada 2 semanas, no mesmo horário, de 2 a 24 sessões (padrão 4).
+- É tudo ou nada: todas as datas são verificadas antes; se alguma estiver ocupada, nada é criado e a tela lista cada data e quem ocupa o horário, mantendo o formulário preenchido.
+- Cada sessão da série é uma sessão normal (com seu pagamento "a receber") e guarda o mesmo identificador `serie`. No detalhe aparece "Sessão X de N da série" e o botão *Cancelar esta e as próximas da série*, que só cancela as sessões ainda agendadas e futuras (realizadas, faltas e passadas não mudam).
+
 ## Segurança e backup
 
 - **Bloqueio de login:** após 5 tentativas erradas seguidas para o mesmo usuário, o login (inclusive o do `/admin/`) fica bloqueado por 15 minutos, mesmo com a senha certa. O contador fica no banco (tabela `core_tentativalogin`) e zera no primeiro login bem-sucedido. Para liberar antes, apague o registro do usuário em *Admin → Tentativas de login*.

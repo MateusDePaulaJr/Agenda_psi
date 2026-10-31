@@ -7,6 +7,7 @@ from django.db import connection
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from decimal import Decimal
@@ -15,7 +16,15 @@ from django.db.models import Sum
 
 from .forms import PacienteForm, PagamentoForm, ProntuarioForm, SessaoForm
 from .models import Paciente, Pagamento, Prontuario, Sessao
-from .services import HorarioOcupado, agendar_sessao, horarios_livres
+from .services import (
+    REPETICOES,
+    HorarioOcupado,
+    SerieComConflito,
+    agendar_serie,
+    agendar_sessao,
+    cancelar_serie_a_partir_de,
+    horarios_livres,
+)
 
 
 def _inicio_semana(texto):
@@ -59,24 +68,41 @@ def sessao_nova(request):
     """Tela 2 e 3: agendar sessão com bloqueio de conflito (RF03, RF04)."""
     inicial = {"data": request.GET.get("data"), "horario": request.GET.get("horario")}
     form = SessaoForm(request.POST or None, usuario=request.user, initial=inicial)
-    conflito, sugestoes = None, []
+    conflito, sugestoes, conflitos_serie = None, [], []
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
-        try:
-            sessao = agendar_sessao(d["paciente"], d["inicio"], d["duracao_minutos"], d["observacao"])
-        except HorarioOcupado as erro:
-            conflito = str(erro)
-            sugestoes = horarios_livres(request.user, d["data"], d["duracao_minutos"])[:3]
+        if d["repetir"]:
+            # Sessões recorrentes: todas as datas livres ou nenhuma é criada.
+            intervalo, rotulo = REPETICOES[d["repetir"]]
+            try:
+                sessoes = agendar_serie(
+                    d["paciente"], d["inicio"], d["duracao_minutos"], d["observacao"], intervalo, d["quantidade"]
+                )
+            except SerieComConflito as erro:
+                conflito, conflitos_serie = str(erro), erro.conflitos
+            else:
+                ultima = timezone.localtime(sessoes[-1].inicio)
+                messages.success(request, f"{len(sessoes)} sessões agendadas ({rotulo}, até {ultima:%d/%m}).")
+                semana = timezone.localtime(sessoes[0].inicio).date().isoformat()
+                return redirect(f"{reverse('agenda')}?semana={semana}&destaque={sessoes[0].pk}")
         else:
-            messages.success(request, "Sessão agendada com sucesso.")
-            return redirect("sessao_detalhe", pk=sessao.pk)
-    return render(request, "core/sessao_form.html", {"form": form, "conflito": conflito, "sugestoes": sugestoes})
+            try:
+                sessao = agendar_sessao(d["paciente"], d["inicio"], d["duracao_minutos"], d["observacao"])
+            except HorarioOcupado as erro:
+                conflito = str(erro)
+                sugestoes = horarios_livres(request.user, d["data"], d["duracao_minutos"])[:3]
+            else:
+                messages.success(request, "Sessão agendada com sucesso.")
+                return redirect("sessao_detalhe", pk=sessao.pk)
+    return render(request, "core/sessao_form.html", {
+        "form": form, "conflito": conflito, "sugestoes": sugestoes, "conflitos_serie": conflitos_serie,
+    })
 
 
 @login_required
 def sessao_detalhe(request, pk):
     sessao = get_object_or_404(Sessao.objects.select_related("paciente", "pagamento"), pk=pk, paciente__usuario=request.user)
-    return render(request, "core/sessao_detalhe.html", {"sessao": sessao})
+    return render(request, "core/sessao_detalhe.html", {"sessao": sessao, "posicao_serie": sessao.posicao_na_serie()})
 
 
 @login_required
@@ -88,6 +114,24 @@ def sessao_cancelar(request, pk):
         messages.success(request, "Sessão cancelada. O horário foi liberado.")
         return redirect("agenda")
     return redirect("sessao_detalhe", pk=pk)
+
+
+@login_required
+def sessao_cancelar_serie(request, pk):
+    """Cancela esta sessão e as próximas agendadas da mesma série recorrente."""
+    sessao = get_object_or_404(Sessao.objects.select_related("paciente"), pk=pk, paciente__usuario=request.user)
+    if request.method != "POST":
+        return redirect("sessao_detalhe", pk=pk)
+    canceladas = cancelar_serie_a_partir_de(sessao)
+    if not canceladas:
+        messages.error(request, "Nenhuma sessão da série pôde ser cancelada.")
+        return redirect("sessao_detalhe", pk=pk)
+    messages.success(
+        request,
+        f"{canceladas} sess{'ões' if canceladas != 1 else 'ão'} da série cancelada{'s' if canceladas != 1 else ''}. "
+        "Os horários foram liberados.",
+    )
+    return redirect(f"{reverse('agenda')}?semana={timezone.localtime(sessao.inicio).date().isoformat()}")
 
 
 @login_required

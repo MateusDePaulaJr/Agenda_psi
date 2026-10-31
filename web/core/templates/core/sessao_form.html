@@ -9,6 +9,14 @@
 <div class="alert alert-danger pa-alert-conflito" role="alert" tabindex="-1" id="alerta-conflito">
   <h2 class="h5 fw-bold">⚠ Horário indisponível</h2>
   <p class="mb-2">{{ conflito }}</p>
+  {% if conflitos_serie %}
+  <ul class="pa-conflitos-serie mb-2">
+    {% for inicio, ocupante in conflitos_serie %}
+    <li><strong>{{ inicio|date:"D, d/m/Y" }} às {{ inicio|time:"H\hi" }}</strong> – ocupado por {{ ocupante.paciente.nome }} ({{ ocupante.inicio|time:"H\hi" }}–{{ ocupante.fim|time:"H\hi" }})</li>
+    {% endfor %}
+  </ul>
+  <p class="mb-2">Ajuste a data, o horário ou a quantidade de sessões e tente de novo.</p>
+  {% endif %}
   <p class="mb-2">Nada foi salvo. Os dados preenchidos foram mantidos.</p>
   {% if sugestoes %}
   <p class="fw-bold mb-2">Horários livres neste dia:</p>
@@ -34,4 +42,14 @@
 </div></div>
 </div>
 </div>
+<script>
+  // Mostra "Quantidade de sessões" só quando a sessão se repete.
+  (function () {
+    var repetir = document.getElementById('id_repetir');
+    var campo = document.getElementById('campo-quantidade');
+    function atualizar() { campo.hidden = !repetir.value; }
+    repetir.addEventListener('change', atualizar);
+    atualizar();
+  })();
+</script>
 {% endblock %}

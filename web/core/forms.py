@@ -7,7 +7,13 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
 from .models import Paciente, Pagamento, Prontuario
-from .services import limpar_falhas_login, minutos_de_bloqueio, registrar_falha_login
+from .services import (
+    MAX_SESSOES_SERIE,
+    MIN_SESSOES_SERIE,
+    limpar_falhas_login,
+    minutos_de_bloqueio,
+    registrar_falha_login,
+)
 
 
 def mensagem_bloqueio(minutos):
@@ -83,13 +89,27 @@ class SessaoForm(forms.Form):
     data = forms.DateField(label="Data (obrigatório)", widget=forms.DateInput(attrs={"type": "date"}))
     horario = forms.TimeField(label="Horário de início (obrigatório)", widget=forms.TimeInput(attrs={"type": "time"}))
     duracao_minutos = forms.IntegerField(label="Duração em minutos", initial=50, min_value=10, max_value=240)
+    repetir = forms.ChoiceField(
+        label="Repetir",
+        required=False,
+        choices=[("", "Não repetir"), ("semanal", "Toda semana (semanal)"), ("quinzenal", "A cada 2 semanas (quinzenal)")],
+    )
+    # Os limites são conferidos em clean(), só quando a sessão se repete, para não
+    # dar erro num campo escondido.
+    quantidade = forms.IntegerField(
+        label=f"Quantidade de sessões ({MIN_SESSOES_SERIE} a {MAX_SESSOES_SERIE}, contando a primeira)",
+        required=False,
+        initial=4,
+        widget=forms.NumberInput(attrs={"min": MIN_SESSOES_SERIE, "max": MAX_SESSOES_SERIE}),
+    )
     observacao = forms.CharField(label="Observação (opcional)", required=False, max_length=200)
 
     def __init__(self, *args, usuario=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["paciente"].queryset = Paciente.objects.filter(usuario=usuario, ativo=True)
+        selecoes = (self.fields["paciente"], self.fields["repetir"])
         for campo in self.fields.values():
-            campo.widget.attrs["class"] = "form-select" if campo is self.fields["paciente"] else "form-control"
+            campo.widget.attrs["class"] = "form-select" if campo in selecoes else "form-control"
 
     def clean(self):
         dados = super().clean()
@@ -98,6 +118,17 @@ class SessaoForm(forms.Form):
             if inicio <= timezone.now():
                 raise forms.ValidationError("A data e o horário precisam ser futuros.")
             dados["inicio"] = inicio
+        if dados.get("repetir"):
+            quantidade = dados.get("quantidade")
+            if quantidade is None and "quantidade" not in self.errors:
+                quantidade = dados["quantidade"] = 4
+            if quantidade is not None and not MIN_SESSOES_SERIE <= quantidade <= MAX_SESSOES_SERIE:
+                self.add_error(
+                    "quantidade",
+                    f"Informe de {MIN_SESSOES_SERIE} a {MAX_SESSOES_SERIE} sessões.",
+                )
+        else:
+            dados["quantidade"] = 1
         return dados
 
 
