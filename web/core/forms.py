@@ -2,9 +2,53 @@ from django import forms
 
 from datetime import datetime
 
+from django.contrib.admin.forms import AdminAuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
 from .models import Paciente, Pagamento, Prontuario
+from .services import limpar_falhas_login, minutos_de_bloqueio, registrar_falha_login
+
+
+def mensagem_bloqueio(minutos):
+    return f"Muitas tentativas. Tente novamente em {minutos} minuto{'s' if minutos != 1 else ''}."
+
+
+class BloqueioLoginMixin:
+    """Bloqueia o login após 5 falhas seguidas do mesmo usuário (RNF01).
+
+    A mensagem é a mesma para usuários existentes ou não, e durante o bloqueio
+    nem a senha correta é aceita.
+    """
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        if username is None:
+            return super().clean()
+        minutos = minutos_de_bloqueio(username)
+        if minutos:
+            raise forms.ValidationError(mensagem_bloqueio(minutos), code="bloqueado")
+        try:
+            dados = super().clean()
+        except forms.ValidationError as erro:
+            if getattr(erro, "code", None) == "invalid_login":
+                minutos = registrar_falha_login(username)
+                if minutos:
+                    raise forms.ValidationError(mensagem_bloqueio(minutos), code="bloqueado") from erro
+            raise
+        limpar_falhas_login(username)
+        return dados
+
+
+class LoginForm(BloqueioLoginMixin, AuthenticationForm):
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": "Usuário ou senha inválidos.",
+    }
+
+
+class AdminLoginForm(BloqueioLoginMixin, AdminAuthenticationForm):
+    pass
 
 
 class PacienteForm(forms.ModelForm):

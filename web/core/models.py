@@ -94,3 +94,24 @@ class Prontuario(models.Model):
 
     def __str__(self):
         return f"Prontuário de {self.sessao}"
+
+
+class TentativaLogin(models.Model):
+    """Falhas de login consecutivas por nome de usuário (bloqueio contra força bruta).
+
+    Fica no banco (e não no cache em memória) porque o Render pode reiniciar o
+    processo a qualquer momento. É registrada para qualquer nome digitado, exista
+    a conta ou não, para não revelar quais usuários existem.
+    """
+
+    username = models.CharField(max_length=150, unique=True)
+    falhas = models.PositiveSmallIntegerField(default=0)
+    bloqueado_ate = models.DateTimeField(null=True, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "tentativa de login"
+        verbose_name_plural = "tentativas de login"
+
+    def __str__(self):
+        return f"{self.username} ({self.falhas} falhas)"
