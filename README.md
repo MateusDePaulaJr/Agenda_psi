@@ -145,3 +145,10 @@ Além da versão **CLI**, o projeto agora conta com uma interface **Web** usando
 - Senhas são guardadas com *hash* (não em texto puro), usando `hashlib`.
 - Esse projeto é didático: foco em aprender lógica, arquivos, funções, banco de dados e um pouco de segurança.
 - Próximos passos possíveis: relatórios gráficos, integração com Google Calendar, deploy em nuvem (Heroku/Render).
+
+
+## Implantação (Render) e monitoramento
+
+- `render.yaml` cria o serviço web (Gunicorn + WhiteNoise) e o banco PostgreSQL gratuito.
+- Variáveis secretas definidas no painel: `PSI_USUARIO`, `PSI_SENHA`, `PSI_NOME` (conta da psicóloga, criada no build por `python manage.py criar_usuaria`). `DJANGO_SECRET_KEY` é gerada pelo Render.
+- **Monitoramento:** `GET /saude/` responde `{"status":"ok","banco":"ok","tempo_ms":...}` sem login e sem dados pessoais. É usado pelo health check do Render e por um monitor externo de disponibilidade (UptimeRobot, a cada 5 min). Erros de requisição vão para os logs do Render.

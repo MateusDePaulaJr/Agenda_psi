@@ -4,12 +4,17 @@ Valores sensíveis vêm de variáveis de ambiente (veja .env.example).
 """
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-inseguro-troque-em-producao")
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
+# No Render, o domínio público chega por esta variável automaticamente.
+if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -23,6 +28,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -50,18 +56,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "psiagenda.wsgi.application"
 
-# Banco: SQLite no desenvolvimento; PostgreSQL em produção via variáveis de ambiente.
-if os.environ.get("POSTGRES_DB"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ["POSTGRES_DB"],
-            "USER": os.environ.get("POSTGRES_USER", ""),
-            "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-            "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
-            "PORT": os.environ.get("POSTGRES_PORT", "5432"),
-        }
+# Banco: SQLite no desenvolvimento; PostgreSQL em produção via DATABASE_URL.
+def banco_a_partir_da_url(url):
+    """Converte postgres://usuario:senha@host:porta/nome no formato do Django."""
+    partes = urlparse(url)
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": partes.path.lstrip("/"),
+        "USER": unquote(partes.username or ""),
+        "PASSWORD": unquote(partes.password or ""),
+        "HOST": partes.hostname or "",
+        "PORT": str(partes.port or 5432),
+        "CONN_MAX_AGE": 60,
     }
+
+
+if os.environ.get("DATABASE_URL"):
+    DATABASES = {"default": banco_a_partir_da_url(os.environ["DATABASE_URL"])}
 else:
     DATABASES = {
         "default": {
@@ -90,6 +101,23 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if not DEBUG
+        else "django.contrib.staticfiles.storage.StaticFilesStorage"
+    },
+}
+
+# Logs no console: o Render coleta e exibe no painel (monitoramento).
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "INFO"},
+    "loggers": {"django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False}},
+}
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
@@ -109,3 +137,5 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    # O health check interno do Render chega por HTTP; não redirecionar essa rota.
+    SECURE_REDIRECT_EXEMPT = [r"^saude/$"]

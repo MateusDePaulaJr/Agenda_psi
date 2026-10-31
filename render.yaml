@@ -1,0 +1,32 @@
+# Blueprint do Render: cria o serviço web (Django + Gunicorn) e o banco PostgreSQL.
+services:
+  - type: web
+    name: psiagenda
+    runtime: python
+    plan: free
+    rootDir: web
+    buildCommand: ./build.sh
+    startCommand: gunicorn psiagenda.wsgi:application
+    healthCheckPath: /saude/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: psiagenda-db
+          property: connectionString
+      - key: PSI_USUARIO
+        sync: false
+      - key: PSI_SENHA
+        sync: false
+      - key: PSI_NOME
+        sync: false
+
+databases:
+  - name: psiagenda-db
+    plan: free
+    databaseName: psiagenda
