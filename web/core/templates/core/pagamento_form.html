@@ -2,11 +2,13 @@
 {% block title %}Registrar pagamento – PsiAgenda{% endblock %}
 {% block content %}
 <a href="{% url 'sessao_detalhe' pagamento.sessao.pk %}">← Voltar para a sessão</a>
-<h1 class="h4 my-3">Registrar pagamento</h1>
+<h1 class="pa-page-title my-3">Registrar pagamento</h1>
 <p>{{ pagamento.sessao.paciente.nome }} · {{ pagamento.sessao.inicio|date:"d/m/Y H:i" }} · <strong>R$ {{ pagamento.valor }}</strong></p>
+<div class="pa-card mt-3"><div class="pa-card-body p-4">
 <form method="post" novalidate>
   {% csrf_token %}
   {% include "core/form_campos.html" %}
   <button class="btn btn-success w-100">✔ Confirmar pagamento</button>
 </form>
+</div></div>
 {% endblock %}

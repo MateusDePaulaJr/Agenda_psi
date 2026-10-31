@@ -2,9 +2,9 @@
 {% block title %}Histórico – PsiAgenda{% endblock %}
 {% block content %}
 <a href="{% url 'pacientes' %}">← Voltar para pacientes</a>
-<h1 class="h4 my-3">Histórico de {{ paciente.nome }}</h1>
+<h1 class="pa-page-title my-3">Histórico de {{ paciente.nome }}</h1>
 {% for r in registros %}
-<article class="card mb-2"><div class="card-body">
+<article class="pa-card mb-2"><div class="card-body">
   <h2 class="h6">{{ r.sessao.inicio|date:"d/m/Y H:i" }}</h2>
   <p class="mb-0" style="white-space: pre-line">{{ r.evolucao }}</p>
 </div></article>

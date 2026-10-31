@@ -1,11 +1,13 @@
 {% extends "core/base.html" %}
 {% block content %}
 <a href="{% url 'pacientes' %}">← Voltar para pacientes</a>
-<h1 class="h4 my-3">{% if paciente %}Editar paciente{% else %}Novo paciente{% endif %}</h1>
+<h1 class="pa-page-title my-3">{% if paciente %}Editar paciente{% else %}Novo paciente{% endif %}</h1>
+<div class="pa-card mt-3"><div class="pa-card-body p-4">
 <form method="post" novalidate>
   {% csrf_token %}
   {% include "core/form_campos.html" %}
   <div class="d-flex gap-2"><button class="btn btn-primary flex-fill">Salvar paciente</button>
   <a class="btn btn-outline-primary" href="{% url 'pacientes' %}">Cancelar</a></div>
 </form>
+</div></div>
 {% endblock %}

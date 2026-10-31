@@ -1,19 +1,21 @@
 {% extends "core/base.html" %}
+{% load psiagenda %}
 {% block title %}Pacientes – PsiAgenda{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 m-0">Pacientes</h1>
+<div class="d-flex justify-content-between align-items-end gap-3 mb-3">
+  <div><h1 class="pa-page-title">Pacientes</h1><p class="pa-subtitle">{{ pacientes|length }} ativo{{ pacientes|length|pluralize }}</p></div>
   <a class="btn btn-primary" href="{% url 'paciente_novo' %}">＋ Novo paciente</a>
 </div>
-<ul class="list-group">
+<div class="pa-card"><ul class="pa-list">
 {% for p in pacientes %}
-  <li class="list-group-item d-flex justify-content-between align-items-center">
-    <span><strong>{{ p.nome }}</strong><br><small>{{ p.telefone }} · R$ {{ p.valor_sessao }}</small></span>
-    <span class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{% url 'paciente_historico' p.pk %}">Histórico</a>
-    <a class="btn btn-outline-primary" href="{% url 'paciente_editar' p.pk %}">Editar</a></span>
+  <li>
+    <span class="pa-avatar" aria-hidden="true">{{ p.nome|iniciais }}</span>
+    <span class="flex-fill"><strong>{{ p.nome }}</strong><br><small class="text-secondary">{{ p.telefone }} · R$ {{ p.valor_sessao }}</small></span>
+    <a class="btn btn-sm pa-btn-ghost" href="{% url 'paciente_historico' p.pk %}">Histórico</a>
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'paciente_editar' p.pk %}">Editar</a>
   </li>
 {% empty %}
-  <li class="list-group-item">Nenhum paciente cadastrado ainda.</li>
+  <li class="text-secondary">Nenhum paciente cadastrado ainda.</li>
 {% endfor %}
-</ul>
+</ul></div>
 {% endblock %}
