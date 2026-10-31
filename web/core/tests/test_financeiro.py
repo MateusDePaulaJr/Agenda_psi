@@ -42,7 +42,7 @@ def test_resumo_mensal_soma_recebido_e_a_receber(cliente_logado, usuaria, pacien
     cancelada.status = Sessao.CANCELADA
     cancelada.save()
     html = cliente_logado.get(reverse("financeiro") + f"?mes={dia.year}-{dia.month}").content.decode()
-    assert "R$ 450" in html and "R$ 150" in html and "Rafael S." in html
+    assert "R$ 450,00" in html and "R$ 150,00" in html and "Rafael S." in html
 
 
 def test_pagamento_de_outra_usuaria_retorna_404(client, outra_usuaria, paciente):
