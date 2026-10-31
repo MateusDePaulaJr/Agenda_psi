@@ -1,2 +1,30 @@
 {% extends "core/base.html" %}
-{% block content %}<h1 class="h4">Agenda</h1><p>Em construção.</p>{% endblock %}
+{% block title %}Agenda – PsiAgenda{% endblock %}
+{% block content %}
+<h1 class="h4">Agenda da semana</h1>
+<div class="d-flex align-items-center gap-2 my-3">
+  <a class="btn btn-outline-secondary" href="?semana={{ anterior|date:'Y-m-d' }}" aria-label="Semana anterior">‹</a>
+  <span class="flex-fill text-center fw-semibold">{{ segunda|date:"d/m" }} a {{ domingo|date:"d/m/Y" }}</span>
+  <a class="btn btn-outline-secondary" href="?semana={{ proxima|date:'Y-m-d' }}" aria-label="Próxima semana">›</a>
+</div>
+{% for dia in dias %}
+<section class="card mb-2" aria-label="{{ dia.data|date:'l, d/m' }}">
+  <h2 class="card-header h6 m-0">{{ dia.data|date:"l, d/m"|capfirst }}</h2>
+  <ul class="list-group list-group-flush">
+  {% for s in dia.sessoes %}
+    <li class="list-group-item slot-ocupado {% if destaque == s.pk|stringformat:'s' %}border border-primary border-3{% endif %}">
+      <a class="d-flex align-items-center gap-2 text-decoration-none text-body py-1" href="{% url 'sessao_detalhe' s.pk %}">
+        <strong style="width:52px">{{ s.inicio|time:"H\hi" }}</strong>
+        <span class="flex-fill">👤 {{ s.paciente.nome }}</span>
+        {% if s.pagamento.status == 'pago' %}<span class="badge text-bg-success">✔ Pago</span>
+        {% else %}<span class="badge text-bg-warning">⏱ A receber</span>{% endif %}
+      </a>
+    </li>
+  {% empty %}
+    <li class="list-group-item text-muted fst-italic">Nenhuma sessão – dia livre</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+<a class="btn btn-primary btn-lg w-100 mt-2" href="{% url 'sessao_nova' %}">＋ Nova sessão</a>
+{% endblock %}

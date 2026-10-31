@@ -1,14 +1,85 @@
+from datetime import date, timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
-from .forms import PacienteForm
-from .models import Paciente
+from .forms import PacienteForm, SessaoForm
+from .models import Paciente, Sessao
+from .services import HorarioOcupado, agendar_sessao, horarios_livres
+
+
+def _inicio_semana(texto):
+    try:
+        base = date.fromisoformat(texto) if texto else timezone.localdate()
+    except ValueError:
+        base = timezone.localdate()
+    return base - timedelta(days=base.weekday())
 
 
 @login_required
 def agenda(request):
-    return render(request, "core/agenda.html")
+    """Tela 1: agenda da semana (RF03, RF05). Carrega só a semana exibida (RNF03)."""
+    segunda = _inicio_semana(request.GET.get("semana"))
+    tz = timezone.get_current_timezone()
+    inicio = timezone.make_aware(timezone.datetime.combine(segunda, timezone.datetime.min.time()), tz)
+    sessoes = (
+        Sessao.objects.filter(paciente__usuario=request.user, inicio__gte=inicio, inicio__lt=inicio + timedelta(days=7))
+        .exclude(status=Sessao.CANCELADA)
+        .select_related("paciente", "pagamento")
+    )
+    dias = []
+    for i in range(7):
+        dia = segunda + timedelta(days=i)
+        do_dia = [s for s in sessoes if timezone.localtime(s.inicio).date() == dia]
+        if i < 5 or do_dia:
+            dias.append({"data": dia, "sessoes": do_dia})
+    contexto = {
+        "dias": dias,
+        "segunda": segunda,
+        "domingo": segunda + timedelta(days=6),
+        "anterior": segunda - timedelta(days=7),
+        "proxima": segunda + timedelta(days=7),
+        "destaque": request.GET.get("destaque"),
+    }
+    return render(request, "core/agenda.html", contexto)
+
+
+@login_required
+def sessao_nova(request):
+    """Tela 2 e 3: agendar sessão com bloqueio de conflito (RF03, RF04)."""
+    inicial = {"data": request.GET.get("data"), "horario": request.GET.get("horario")}
+    form = SessaoForm(request.POST or None, usuario=request.user, initial=inicial)
+    conflito, sugestoes = None, []
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        try:
+            sessao = agendar_sessao(d["paciente"], d["inicio"], d["duracao_minutos"], d["observacao"])
+        except HorarioOcupado as erro:
+            conflito = str(erro)
+            sugestoes = horarios_livres(request.user, d["data"], d["duracao_minutos"])[:3]
+        else:
+            messages.success(request, "Sessão agendada com sucesso.")
+            return redirect("sessao_detalhe", pk=sessao.pk)
+    return render(request, "core/sessao_form.html", {"form": form, "conflito": conflito, "sugestoes": sugestoes})
+
+
+@login_required
+def sessao_detalhe(request, pk):
+    sessao = get_object_or_404(Sessao.objects.select_related("paciente", "pagamento"), pk=pk, paciente__usuario=request.user)
+    return render(request, "core/sessao_detalhe.html", {"sessao": sessao})
+
+
+@login_required
+def sessao_cancelar(request, pk):
+    sessao = get_object_or_404(Sessao, pk=pk, paciente__usuario=request.user)
+    if request.method == "POST":
+        sessao.status = Sessao.CANCELADA
+        sessao.save(update_fields=["status"])
+        messages.success(request, "Sessão cancelada. O horário foi liberado.")
+        return redirect("agenda")
+    return redirect("sessao_detalhe", pk=pk)
 
 
 @login_required
