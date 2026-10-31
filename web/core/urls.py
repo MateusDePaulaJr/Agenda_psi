@@ -22,6 +22,7 @@ urlpatterns = [
     path("financeiro/", views.financeiro, name="financeiro"),
     path("financeiro/exportar.csv", views.financeiro_csv, name="financeiro_csv"),
     path("perfil/", views.perfil, name="perfil"),
+    path("p/<slug:slug>/", views.perfil_publico, name="perfil_publico"),
     path("pacientes/", views.pacientes, name="pacientes"),
     path("pacientes/novo/", views.paciente_form, name="paciente_novo"),
     path("pacientes/<int:pk>/editar/", views.paciente_form, name="paciente_editar"),

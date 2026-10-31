@@ -1,0 +1,37 @@
+{# Um campo do "Meu perfil": texto, caixa de seleção, opções em chips ou cores do avatar. #}
+<div class="mb-3 pa-perfil-campo" id="campo-{{ campo.name }}">
+{% if campo.widget_type == "checkbox" %}
+  <div class="form-check pa-perfil-check">
+    {{ campo }}
+    <label class="form-check-label fw-bold" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  </div>
+{% elif campo.widget_type == "radioselect" or campo.widget_type == "checkboxselectmultiple" %}
+  <fieldset{% if campo.help_text %} aria-describedby="{{ campo.auto_id }}_helptext"{% endif %}>
+    <legend class="form-label fw-bold">{{ campo.label }}</legend>
+    {% if campo.widget_type == "radioselect" %}
+    <div class="pa-cores">
+      {% for opcao in campo %}
+      <label class="pa-cor-opcao" for="{{ opcao.id_for_label }}">
+        {{ opcao.tag }}
+        <span class="pa-cor-amostra pa-cor-{{ opcao.data.value }}" aria-hidden="true">{{ iniciais }}</span>
+        <span class="pa-cor-nome">{{ opcao.choice_label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="pa-opcoes">
+      {% for opcao in campo %}
+      <label class="pa-opcao" for="{{ opcao.id_for_label }}">{{ opcao.tag }} {{ opcao.choice_label }}</label>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </fieldset>
+{% else %}
+  <label class="form-label fw-bold" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+  {{ campo }}
+{% endif %}
+{% if campo.help_text %}<div class="form-text pa-ajuda" id="{{ campo.auto_id }}_helptext">{{ campo.help_text }}</div>{% endif %}
+{% if campo.name == "bio" %}<div class="form-text text-end pa-contador" id="contador-bio">{{ campo.value|default:""|length }}/600</div>{% endif %}
+{% if campo.name == "especialidades" %}<ul class="pa-chips pa-chips-previa" id="previa-especialidades" aria-hidden="true"></ul>{% endif %}
+{% for erro in campo.errors %}<div class="text-danger mt-1" role="alert">⚠ {{ erro }}</div>{% endfor %}
+</div>

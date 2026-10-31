@@ -1,19 +1,97 @@
 {% extends "core/base.html" %}
+{% load psiagenda %}
 {% block title %}Meu perfil – PsiAgenda{% endblock %}
 {% block content %}
 <h1 class="pa-page-title">Meu perfil</h1>
-<p class="pa-subtitle">Dados que aparecem nos recibos e nos lembretes. Todos são opcionais: o que ficar em branco não é exibido.</p>
-<div class="pa-card mt-3" style="max-width:640px"><div class="pa-card-body p-4">
-<form method="post" novalidate>
-  {% csrf_token %}
-  {% include "core/form_campos.html" %}
-  <div class="pa-marcadores mb-3" id="ajuda-lembrete">
-    <p class="mb-1">Você pode usar estes marcadores na mensagem de lembrete:</p>
-    <ul>{% for codigo, descricao in marcadores.items %}<li><code>{{ "{" }}{{ codigo }}{{ "}" }}</code> – {{ descricao }}</li>{% endfor %}</ul>
-    <p class="mb-0">Mensagem padrão: <em>{{ mensagem_padrao }}</em></p>
-    <p class="mb-0">Não coloque informações clínicas: o texto passa pelo WhatsApp (Meta) quando você envia.</p>
-  </div>
-  <button class="btn btn-primary w-100">Salvar perfil</button>
-</form>
-</div></div>
+<p class="pa-subtitle">Dados que aparecem nos recibos, nos lembretes e na sua página pública. Todos são opcionais: o que ficar em branco não é exibido.</p>
+<div class="pa-perfil-layout mt-3">
+  <aside class="pa-perfil-lado" aria-label="Resumo do perfil">
+    <div class="pa-card"><div class="pa-card-body">
+      <div class="pa-perfil-quem">
+        {% avatar_perfil iniciais cor nome %}
+        <div>
+          <p class="pa-perfil-nome">{{ nome }}</p>
+          <p class="pa-perfil-crp">{% if perfil.crp %}Psicóloga · CRP {{ perfil.crp }}{% else %}CRP não informado{% endif %}</p>
+        </div>
+      </div>
+      <div class="pa-perfil-publica">
+        <h2 class="pa-perfil-lado-titulo">Página pública
+          {% if perfil.perfil_publico %}<span class="pa-badge pa-badge-pago">● Ativa</span>{% else %}<span class="pa-badge pa-badge-desativada">○ Desativada</span>{% endif %}
+        </h2>
+        {% if link_publico %}
+          <label class="form-label" for="link-publico">Link para divulgar</label>
+          <div class="pa-copiar">
+            <input id="link-publico" class="form-control" type="text" readonly value="{{ link_publico }}">
+            <button type="button" class="btn btn-outline-primary" id="botao-copiar" aria-describedby="status-copiar">Copiar</button>
+          </div>
+          <p class="pa-copiar-status" id="status-copiar" role="status" aria-live="polite"></p>
+          <a class="btn pa-btn-ghost w-100" href="{{ link_publico }}" target="_blank" rel="noopener">{% if perfil.perfil_publico %}Ver minha página ↗{% else %}Pré-visualizar ↗{% endif %}</a>
+          {% if not perfil.perfil_publico %}<p class="pa-perfil-nota">Desativada: quem abrir o link recebe “página não encontrada”. Só você vê a pré-visualização.</p>{% endif %}
+        {% else %}
+          <p class="pa-perfil-nota mb-0">Salve o perfil para gerar o endereço da sua página.</p>
+        {% endif %}
+      </div>
+    </div></div>
+    <nav class="pa-perfil-indice" aria-label="Seções do perfil">
+      {% for ident, titulo, descricao, campos in form.secoes %}<a href="#secao-{{ ident }}">{{ titulo }}</a>{% endfor %}
+    </nav>
+  </aside>
+
+  <form method="post" novalidate class="pa-perfil-form">
+    {% csrf_token %}
+    {% if form.errors %}<div class="alert alert-danger" role="alert">⚠ Não foi possível salvar. Confira os campos marcados abaixo.</div>{% endif %}
+    {% for erro in form.non_field_errors %}<div class="alert alert-danger" role="alert">⚠ {{ erro }}</div>{% endfor %}
+    {% for ident, titulo, descricao, campos in form.secoes %}
+    <section class="pa-card pa-perfil-secao" id="secao-{{ ident }}" aria-labelledby="titulo-{{ ident }}"><div class="pa-card-body">
+      <h2 class="pa-perfil-secao-titulo" id="titulo-{{ ident }}">{{ titulo }}</h2>
+      {% if descricao %}<p class="pa-perfil-desc">{{ descricao }}</p>{% endif %}
+      {% for campo in campos %}{% include "core/perfil_campo.html" %}{% endfor %}
+      {% if ident == "lembrete" %}
+      <div class="pa-marcadores" id="ajuda-lembrete">
+        <p class="mb-1">Você pode usar estes marcadores na mensagem de lembrete:</p>
+        <ul>{% for codigo, descricao in marcadores.items %}<li><code>{{ "{" }}{{ codigo }}{{ "}" }}</code> – {{ descricao }}</li>{% endfor %}</ul>
+        <p class="mb-0">Mensagem padrão: <em>{{ mensagem_padrao }}</em></p>
+        <p class="mb-0">Não coloque informações clínicas: o texto passa pelo WhatsApp (Meta) quando você envia.</p>
+      </div>
+      {% endif %}
+    </div></section>
+    {% endfor %}
+    <button class="btn btn-primary w-100 pa-perfil-salvar">Salvar perfil</button>
+  </form>
+</div>
+<script>
+  (function () {
+    // Copiar o link da página pública.
+    var botao = document.getElementById('botao-copiar');
+    if (botao) {
+      var campo = document.getElementById('link-publico');
+      var status = document.getElementById('status-copiar');
+      function avisar(texto) { status.textContent = texto; setTimeout(function () { status.textContent = ''; }, 4000); }
+      botao.addEventListener('click', function () {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(campo.value).then(function () { avisar('Link copiado!'); }, function () { campo.select(); avisar('Selecione e copie o link.'); });
+        } else {
+          campo.select();
+          avisar(document.execCommand('copy') ? 'Link copiado!' : 'Selecione e copie o link.');
+        }
+      });
+    }
+    // Contador da mini bio.
+    var bio = document.getElementById('id_bio');
+    var contador = document.getElementById('contador-bio');
+    if (bio && contador) {
+      bio.addEventListener('input', function () { contador.textContent = bio.value.length + '/600'; });
+    }
+    // Prévia das especialidades em chips.
+    var temas = document.getElementById('id_especialidades');
+    var previa = document.getElementById('previa-especialidades');
+    function desenhar() {
+      previa.textContent = '';
+      temas.value.split(',').map(function (t) { return t.trim(); }).filter(Boolean).forEach(function (t) {
+        var li = document.createElement('li'); li.textContent = t; previa.appendChild(li);
+      });
+    }
+    if (temas && previa) { temas.addEventListener('input', desenhar); desenhar(); }
+  })();
+</script>
 {% endblock %}

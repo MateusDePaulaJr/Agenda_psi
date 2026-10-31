@@ -264,6 +264,87 @@ def lembrete_whatsapp(sessao, perfil=None):
     return {"sessao": sessao, "mensagem": texto, "numero": numero, "url": link_whatsapp(numero, texto) if numero else None}
 
 
+# --- Perfil da psicóloga e página pública ---
+
+# Texto neutro que já vem escrito quando alguém clica em "WhatsApp" na página pública.
+MENSAGEM_CONTATO_PUBLICO = "Olá! Vi seu perfil e gostaria de saber sobre horários."
+
+# Títulos ignorados nas iniciais do avatar ("Dra. Ana Souza" -> "AS").
+_TITULOS = {"dr", "dra", "psi", "psic", "psicóloga", "psicólogo", "prof", "profa"}
+
+
+def iniciais_profissional(nome):
+    """Até duas iniciais do nome, sem títulos como "Dra." e sem o que vier entre parênteses."""
+    nome = re.sub(r"\(.*?\)", " ", str(nome or ""))
+    partes = [p for p in nome.replace(".", " ").split() if p.lower() not in _TITULOS and p[0].isalnum()]
+    if len(partes) > 2:
+        partes = [partes[0], partes[-1]]
+    return "".join(p[0] for p in partes).upper() or "?"
+
+
+_HANDLE_INSTAGRAM = re.compile(r"^[A-Za-z0-9._]{1,30}$")
+_URL_INSTAGRAM = re.compile(r"^(?:https?://)?(?:www\.)?instagram\.com/([A-Za-z0-9._]{1,30})/?(?:[?#].*)?$", re.IGNORECASE)
+
+
+def normalizar_instagram(texto):
+    """'@ana.psi', 'ana.psi' ou um link do instagram.com -> 'https://www.instagram.com/ana.psi/'.
+
+    Devolve "" para vazio e None se não for um perfil do Instagram.
+    """
+    texto = (texto or "").strip()
+    if not texto:
+        return ""
+    casamento = _URL_INSTAGRAM.match(texto)
+    usuario = casamento.group(1) if casamento else texto.removeprefix("@")
+    if not _HANDLE_INSTAGRAM.match(usuario):
+        return None
+    return f"https://www.instagram.com/{usuario}/"
+
+
+def cartao_publico(perfil):
+    """Dados da página pública: lista fechada (allowlist) do que pode aparecer.
+
+    Só nome, CRP, apresentação, modalidade e contatos públicos; a cidade apenas
+    se a psicóloga marcar "mostrar cidade". Nunca CPF/CNPJ, valores, pacientes,
+    agenda ou a mensagem de lembrete. O template recebe só este dicionário (e não
+    o objeto do perfil) para que nada mais vaze por engano.
+    """
+    nome = nome_profissional(perfil.usuario, perfil)
+    numero = numero_whatsapp(perfil.whatsapp)
+    instagram = perfil.instagram
+    descricao_partes = [f"Psicóloga{f' · CRP {perfil.crp}' if perfil.crp else ''}"]
+    if perfil.abordagem:
+        descricao_partes.append(perfil.abordagem)
+    if perfil.modalidade:
+        descricao_partes.append(f"Atendimento {perfil.modalidade.lower()}")
+    resumo = " · ".join(descricao_partes)
+    bio = " ".join(perfil.bio.split())
+    descricao = f"{resumo}. {bio}" if bio else f"{resumo}."
+    if len(descricao) > 160:
+        descricao = descricao[:157].rsplit(" ", 1)[0] + "…"
+    return {
+        "nome": nome,
+        "iniciais": iniciais_profissional(nome),
+        "cor": perfil.cor_avatar,
+        "crp": perfil.crp,
+        "bio": perfil.bio,
+        "abordagem": perfil.abordagem,
+        "especialidades": perfil.lista_especialidades,
+        "publico": perfil.lista_publico,
+        "idiomas": perfil.idiomas,
+        "modalidade": perfil.modalidade,
+        "cidade": perfil.cidade if perfil.mostrar_cidade else "",
+        "whatsapp_url": link_whatsapp(numero, MENSAGEM_CONTATO_PUBLICO) if numero else None,
+        "email": perfil.email_publico,
+        "instagram": instagram,
+        "instagram_usuario": instagram.rstrip("/").rsplit("/", 1)[-1] if instagram else "",
+        "site": perfil.site,
+        "site_rotulo": re.sub(r"^https?://(www\.)?", "", perfil.site).rstrip("/") if perfil.site else "",
+        "descricao": descricao,
+        "publico_ativo": perfil.perfil_publico,
+    }
+
+
 def horarios_livres(usuario, dia, duracao=50, inicio_expediente=8, fim_expediente=20):
     """Sugere horários cheios livres no dia (usado no alerta de conflito)."""
     from datetime import datetime, timedelta

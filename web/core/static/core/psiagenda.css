@@ -205,3 +205,105 @@ a { color: var(--pa-primary); }
 .pa-painel-legenda { color: var(--pa-muted); font-size: .8rem; margin-top: .5rem; text-align: center; }
 /* Atalho do painel abre a lista de lembretes da agenda: nomes longos não podem alargar a tela no celular. */
 .pa-lembretes-amanha .pa-list li > .flex-fill { min-width: 0; }
+
+/* === Perfil === */
+/* Meu perfil (seções, avatar com iniciais, link da página pública) e a página pública /p/slug/. */
+.pa-cor-indigo { background: #4338ca; }
+.pa-cor-violeta { background: #6d28d9; }
+.pa-cor-azul { background: #1d4ed8; }
+.pa-cor-petroleo { background: #0f766e; }
+.pa-cor-verde { background: #15803d; }
+.pa-cor-rosa { background: #be185d; }
+.pa-cor-terracota { background: #b45309; }
+.pa-cor-grafite { background: #374151; }
+.pa-perfil-avatar { display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; flex-shrink: 0;
+  letter-spacing: .02em; box-shadow: 0 0 0 3px var(--pa-surface), 0 4px 12px rgba(16, 24, 40, .15); }
+.pa-perfil-avatar-m { width: 56px; height: 56px; font-size: 1.2rem; }
+.pa-perfil-avatar-g { width: 104px; height: 104px; font-size: 2.2rem; }
+
+/* Meu perfil: resumo ao lado (desktop) ou em cima (celular) */
+.pa-perfil-layout { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); }
+.pa-perfil-lado { display: grid; gap: 1rem; align-content: start; }
+@media (min-width: 992px) {
+  .pa-perfil-layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+  .pa-perfil-lado { order: 2; position: sticky; top: 5.5rem; }
+}
+.pa-perfil-quem { display: flex; align-items: center; gap: .85rem; padding-bottom: 1rem; border-bottom: 1px solid var(--pa-border); }
+.pa-perfil-nome { font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.pa-perfil-crp, .pa-perfil-nota { color: var(--pa-muted); font-size: .875rem; margin: 0; }
+.pa-perfil-nota { margin-top: .6rem; }
+.pa-perfil-publica { padding-top: 1rem; }
+.pa-perfil-lado-titulo { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: 1rem; font-weight: 700; margin: 0 0 .75rem; }
+.pa-badge-desativada { background: #f1f3f7; color: var(--pa-muted); }
+.pa-copiar { display: flex; gap: .5rem; }
+.pa-copiar .form-control { min-width: 0; font-size: .875rem; background: #f8f9fc; }
+.pa-copiar-status { min-height: 1.4rem; margin: .25rem 0 .35rem; font-size: .875rem; color: var(--pa-success); font-weight: 600; }
+.pa-perfil-indice { display: flex; flex-wrap: wrap; gap: .4rem; }
+.pa-perfil-indice a { display: inline-flex; align-items: center; min-height: 36px; padding: .3rem .75rem; border-radius: 999px; font-size: .85rem;
+  font-weight: 600; text-decoration: none; background: var(--pa-surface); border: 1px solid var(--pa-border); color: var(--pa-text); }
+.pa-perfil-indice a:hover { background: var(--pa-primary-soft); color: var(--pa-primary); }
+@media (max-width: 991.98px) { .pa-perfil-indice { display: none; } }
+.pa-perfil-form { display: grid; gap: 1rem; min-width: 0; }
+.pa-perfil-secao { scroll-margin-top: 5.5rem; }
+.pa-perfil-secao .pa-card-body { padding: 1.25rem; }
+.pa-perfil-secao-titulo { font-size: 1.1rem; font-weight: 700; margin: 0 0 .2rem; }
+.pa-perfil-desc { color: var(--pa-muted); font-size: .9rem; margin: 0 0 1rem; }
+.pa-perfil-campo:last-child { margin-bottom: 0 !important; }
+.pa-ajuda, .pa-contador { color: var(--pa-muted); }
+.pa-perfil-campo fieldset legend { font-size: 1rem; margin-bottom: .5rem; }
+.pa-perfil-check { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding-left: 0; margin: 0; }
+.pa-perfil-check .form-check-input { width: 1.4rem; height: 1.4rem; margin: 0; flex-shrink: 0; }
+.pa-perfil-check + .pa-ajuda { margin-top: 0; padding-left: 2rem; }
+
+/* Cores do avatar: a amostra mostra as iniciais; o rádio fica acessível por teclado */
+.pa-cores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; }
+@media (min-width: 768px) { .pa-cores { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+.pa-cor-opcao { position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem .25rem;
+  border: 1px solid var(--pa-border); border-radius: 12px; cursor: pointer; font-size: .8rem; text-align: center; }
+.pa-cor-opcao input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.pa-cor-amostra { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: .85rem; }
+.pa-cor-opcao:has(input:checked) { border-color: var(--pa-primary); background: var(--pa-primary-soft); box-shadow: 0 0 0 1px var(--pa-primary); font-weight: 700; }
+.pa-cor-opcao:has(input:checked)::after { content: "✓"; position: absolute; top: .25rem; right: .45rem; color: var(--pa-primary); font-size: .9rem; }
+.pa-cor-opcao:has(input:focus-visible) { outline: 3px solid var(--pa-primary); outline-offset: 2px; }
+
+/* Opções (público atendido) e chips (especialidades) */
+.pa-opcoes { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pa-opcao { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: .4rem .85rem; border: 1px solid var(--pa-border);
+  border-radius: 999px; cursor: pointer; font-weight: 600; }
+.pa-opcao input { width: 1.1rem; height: 1.1rem; accent-color: var(--pa-primary); }
+.pa-opcao:has(input:checked) { border-color: var(--pa-primary); background: var(--pa-primary-soft); color: var(--pa-primary-dark); }
+.pa-chips { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: 0; }
+.pa-chips li { padding: .3rem .75rem; border-radius: 999px; background: var(--pa-primary-soft); color: var(--pa-primary-dark); font-size: .85rem; font-weight: 600; }
+.pa-chips-previa:not(:empty) { margin-top: .5rem; }
+
+/* Página pública */
+.pa-publico-body { min-height: 100vh;
+  background: radial-gradient(900px 500px at 0% -10%, #e0e7ff 0%, transparent 60%), radial-gradient(700px 400px at 100% 110%, #ede9fe 0%, transparent 60%), var(--pa-bg); }
+.pa-previa { background: var(--pa-warning-soft); color: var(--pa-warning); text-align: center; padding: .75rem 1rem; font-size: .9rem; border-bottom: 1px solid #fcd34d; }
+.pa-previa a { color: var(--pa-warning); font-weight: 700; }
+.pa-publico { max-width: 600px; margin: 0 auto; padding: 1.5rem 1rem 2rem; }
+.pa-cartao { overflow: hidden; }
+.pa-cartao-faixa { height: 96px; background-image: linear-gradient(135deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, 0)); }
+.pa-cartao-corpo { padding: 0 1.25rem 1.5rem; }
+.pa-cartao-topo { text-align: center; margin-top: -52px; }
+.pa-cartao-nome { font-size: 1.6rem; font-weight: 700; letter-spacing: -.02em; margin: .75rem 0 .15rem; overflow-wrap: anywhere; }
+.pa-cartao-titulo { color: var(--pa-muted); font-weight: 600; margin: 0; }
+.pa-cartao-abordagem { margin: .35rem 0 0; font-weight: 600; color: var(--pa-primary-dark); }
+.pa-chips-centro { justify-content: center; margin-top: 1rem; }
+/* Botões de contato: um por linha no celular; no desktop dividem a linha sem deixar sobra. */
+.pa-cartao-contatos { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.25rem; }
+.pa-cartao-contatos .btn { flex: 1 1 100%; display: flex; align-items: center; justify-content: center; gap: .4rem; flex-wrap: wrap; }
+.pa-cartao-link-detalhe { font-weight: 400; color: var(--pa-muted); overflow-wrap: anywhere; }
+@media (min-width: 576px) {
+  .pa-cartao-corpo { padding: 0 2rem 2rem; }
+  .pa-cartao-contatos .btn { flex-basis: 180px; }
+  .pa-cartao-contatos .pa-btn-whatsapp { flex-basis: 100%; }
+}
+.pa-cartao-secao { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--pa-border); }
+.pa-cartao-secao h2 { font-size: 1rem; font-weight: 700; margin: 0 0 .4rem; }
+.pa-cartao-secao p { margin: 0; line-height: 1.65; }
+.pa-cartao-info { display: grid; gap: .6rem; margin: 1.5rem 0 0; padding-top: 1.25rem; border-top: 1px solid var(--pa-border); }
+.pa-cartao-info div { display: grid; grid-template-columns: 7.5rem 1fr; gap: .5rem; }
+.pa-cartao-info dt { color: var(--pa-muted); font-weight: 600; }
+.pa-cartao-info dd { margin: 0; }
+.pa-publico-rodape { text-align: center; color: var(--pa-muted); font-size: .85rem; margin: 1.25rem 0 0; }
