@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.utils import timezone
 
-from .models import Paciente
+from .models import Paciente, Pagamento
 
 
 class PacienteForm(forms.ModelForm):
@@ -55,3 +55,19 @@ class SessaoForm(forms.Form):
                 raise forms.ValidationError("A data e o horário precisam ser futuros.")
             dados["inicio"] = inicio
         return dados
+
+
+class PagamentoForm(forms.ModelForm):
+    class Meta:
+        model = Pagamento
+        fields = ["data_pagamento", "forma_pagamento"]
+        labels = {"data_pagamento": "Data do pagamento (obrigatório)", "forma_pagamento": "Forma de pagamento"}
+        widgets = {"data_pagamento": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["data_pagamento"].required = True
+        if not self.initial.get("data_pagamento"):
+            self.initial["data_pagamento"] = timezone.localdate()
+        self.fields["data_pagamento"].widget.attrs["class"] = "form-control"
+        self.fields["forma_pagamento"].widget.attrs["class"] = "form-select"

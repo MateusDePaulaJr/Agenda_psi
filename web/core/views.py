@@ -5,8 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .forms import PacienteForm, SessaoForm
-from .models import Paciente, Sessao
+from decimal import Decimal
+
+from django.db.models import Sum
+
+from .forms import PacienteForm, PagamentoForm, SessaoForm
+from .models import Paciente, Pagamento, Sessao
 from .services import HorarioOcupado, agendar_sessao, horarios_livres
 
 
@@ -99,3 +103,38 @@ def paciente_form(request, pk=None):
         messages.success(request, "Paciente salvo com sucesso.")
         return redirect("pacientes")
     return render(request, "core/paciente_form.html", {"form": form, "paciente": paciente})
+
+
+@login_required
+def pagamento_registrar(request, pk):
+    """Marca o pagamento de uma sessão como pago (RF05)."""
+    pagamento = get_object_or_404(Pagamento, sessao__pk=pk, sessao__paciente__usuario=request.user)
+    form = PagamentoForm(request.POST or None, instance=pagamento)
+    if request.method == "POST" and form.is_valid():
+        pago = form.save(commit=False)
+        pago.status = Pagamento.PAGO
+        pago.save()
+        messages.success(request, "Pagamento registrado como pago.")
+        return redirect("sessao_detalhe", pk=pk)
+    return render(request, "core/pagamento_form.html", {"form": form, "pagamento": pagamento})
+
+
+@login_required
+def financeiro(request):
+    """Resumo mensal: total recebido, a receber e pacientes em aberto (RF07)."""
+    hoje = timezone.localdate()
+    try:
+        ano, mes = map(int, request.GET.get("mes", f"{hoje.year}-{hoje.month}").split("-"))
+    except ValueError:
+        ano, mes = hoje.year, hoje.month
+    pagamentos = Pagamento.objects.filter(
+        sessao__paciente__usuario=request.user, sessao__inicio__year=ano, sessao__inicio__month=mes
+    ).exclude(sessao__status=Sessao.CANCELADA).select_related("sessao__paciente")
+    recebido = pagamentos.filter(status=Pagamento.PAGO).aggregate(t=Sum("valor"))["t"] or Decimal("0")
+    pendentes = pagamentos.filter(status=Pagamento.A_RECEBER)
+    a_receber = pendentes.aggregate(t=Sum("valor"))["t"] or Decimal("0")
+    em_aberto = pendentes.values("sessao__paciente__nome").annotate(total=Sum("valor")).order_by("sessao__paciente__nome")
+    return render(request, "core/financeiro.html", {
+        "ano": ano, "mes": mes, "recebido": recebido, "a_receber": a_receber,
+        "em_aberto": em_aberto, "pendentes": pendentes.order_by("sessao__inicio"),
+    })

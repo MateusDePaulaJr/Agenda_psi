@@ -11,6 +11,7 @@
     {% if sessao.pagamento.status == 'pago' %}<span class="badge text-bg-success">✔ Pago</span>{% else %}<span class="badge text-bg-warning">⏱ A receber</span>{% endif %}</dd>
 </dl>
 <div class="d-flex gap-2 flex-wrap">
+  {% if sessao.pagamento.status == 'a_receber' and sessao.status != 'cancelada' %}<a class="btn btn-success" href="{% url 'pagamento_registrar' sessao.pk %}">✔ Marcar como pago</a>{% endif %}
   <a class="btn btn-primary" href="{% url 'sessao_nova' %}">Agendar outra</a>
   {% if sessao.status == 'agendada' %}
   <form method="post" action="{% url 'sessao_cancelar' sessao.pk %}">{% csrf_token %}<button class="btn btn-outline-danger">Cancelar sessão</button></form>
