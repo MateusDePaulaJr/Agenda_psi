@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.utils import timezone
 
-from .models import Paciente, Pagamento
+from .models import Paciente, Pagamento, Prontuario
 
 
 class PacienteForm(forms.ModelForm):
@@ -71,3 +71,11 @@ class PagamentoForm(forms.ModelForm):
             self.initial["data_pagamento"] = timezone.localdate()
         self.fields["data_pagamento"].widget.attrs["class"] = "form-control"
         self.fields["forma_pagamento"].widget.attrs["class"] = "form-select"
+
+
+class ProntuarioForm(forms.ModelForm):
+    class Meta:
+        model = Prontuario
+        fields = ["evolucao"]
+        labels = {"evolucao": "Evolução da sessão (obrigatório)"}
+        widgets = {"evolucao": forms.Textarea(attrs={"class": "form-control", "rows": 8})}
