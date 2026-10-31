@@ -45,3 +45,8 @@ exports/
 # Relatórios gerados
 exports/
 *.csv
+
+# Django (web/)
+*.sqlite3
+staticfiles/
+.env
